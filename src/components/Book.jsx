@@ -27,7 +27,6 @@ const pageGeometry = new THREE.BoxGeometry(
   PAGE_SEGMENTS,
   2
 );
-
 pageGeometry.translate(PAGE_WIDTH / 2, 0, 0);
 
 const position = pageGeometry.attributes.position;
@@ -38,10 +37,8 @@ const skinWeights = [];
 for (let i = 0; i < position.count; i++) {
   vertex.fromBufferAttribute(position, i);
   const x = vertex.x;
-
   const skinIndex = Math.max(0, Math.floor(x / SEGMENT_WIDTH));
   let skinWeight = (x % SEGMENT_WIDTH) / SEGMENT_WIDTH;
-
   skinIndexes.push(skinIndex, skinIndex + 1, 0, 0);
   skinWeights.push(1 - skinWeight, skinWeight, 0, 0);
 }
@@ -57,7 +54,6 @@ pageGeometry.setAttribute(
 
 const whiteColor = new THREE.Color("white");
 const emissiveColor = new THREE.Color("orange");
-
 const pageMaterials = [
   new THREE.MeshStandardMaterial({
     color: whiteColor,
@@ -73,84 +69,11 @@ const pageMaterials = [
   }),
 ];
 
-pages.forEach((page) => {
-  useTexture.preload(`textures/${page.front}.jpg`);
-  useTexture.preload(`textures/${page.back}.jpg`);
-});
-
-useTexture.preload("textures/book-cover.jpg");
-useTexture.preload("textures/book-back.jpg");
-
-export const Book = ({ ...props }) => {
-  const [page] = useAtom(pageAtom);
-  const [delayedPage, setDelayedPage] = useState(page);
-
-  const lastPage = page;
-
-  useFrame(() => {
-    if (page === delayedPage) {
-      return;
-    }
-    if (Math.abs(page - delayedPage) > 1) {
-      // if the page difference is greater than 1, we need to update the page immediately
-      setDelayedPage(page);
-    } else {
-      const goingForward = page > delayedPage;
-      const goingBackward = page < delayedPage;
-      if (
-        (goingForward && lastPage > delayedPage) ||
-        (goingBackward && lastPage < delayedPage)
-      ) {
-        setDelayedPage(page);
-      }
-    }
-  });
-
-  return (
-    <group {...props}>
-      <group rotation-y={-Math.PI / 2}>
-        {[...pages].map((pageData, index) =>
-          index === 0 ? (
-            <Cover
-              key={index}
-              number={index}
-              texture={"textures/book-cover.jpg"}
-              {...pageData}
-            />
-          ) : (
-            <Page
-              key={index}
-              number={index}
-              front={`textures/${pageData.front}.jpg`}
-              back={`textures/${pageData.back}.jpg`}
-              page={delayedPage}
-              opened={delayedPage > index}
-              bookClosed={delayedPage === 0 || delayedPage === pages.length}
-              {...pageData}
-            />
-          )
-        )}
-        <Cover
-          number={pages.length}
-          texture={"textures/book-back.jpg"}
-          opened={delayedPage === pages.length}
-          bookClosed={delayedPage === 0 || delayedPage === pages.length}
-        />
-      </group>
-    </group>
-  );
-};
-
-const Page = ({
-  number,
-  front,
-  back,
-  page,
-  opened,
-  bookClosed,
-  ...props
-}) => {
+const Page = ({ number, front, back, page, opened, bookClosed, ...props }) => {
   const [picture, picture2] = useTexture([front, back]);
+  picture.colorSpace = THREE.SRGBColorSpace;
+  picture2.colorSpace = THREE.SRGBColorSpace;
+
   const group = useRef();
   const skinnedMeshRef = useRef();
 
@@ -168,6 +91,7 @@ const Page = ({
         bones[i - 1].add(bone);
       }
     }
+
     const skeleton = new THREE.Skeleton(bones);
 
     const materials = [
@@ -200,6 +124,7 @@ const Page = ({
     const outsideCurveIntensity = opened ? 0 : outsideCurveStrength;
     const turningIntensity =
       Math.sin(skinnedMeshRef.current.rotation.y) * turningCurveStrength;
+
     easing.dampAngle(
       skinnedMeshRef.current.rotation,
       "y",
@@ -238,12 +163,77 @@ const Page = ({
 const Cover = ({ texture, opened, bookClosed, ...props }) => {
   const [picture] = useTexture([texture]);
   picture.colorSpace = THREE.SRGBColorSpace;
+
   return (
     <group {...props}>
       <mesh position-z={-0.01}>
         <boxGeometry args={[PAGE_WIDTH, PAGE_HEIGHT, 0.002]} />
         <meshBasicMaterial map={picture} />
       </mesh>
+    </group>
+  );
+};
+
+export const Book = ({ ...props }) => {
+  const [page] = useAtom(pageAtom);
+  const [delayedPage, setDelayedPage] = useState(page);
+
+  // Update delayed page for UI effects
+  useState(() => {
+    let timeout;
+    const goToPage = () => {
+      setDelayedPage((delayedPage) => {
+        if (page === delayedPage) {
+          return delayedPage;
+        } else {
+          timeout = setTimeout(
+            () => {
+              goToPage();
+            },
+            Math.abs(page - delayedPage) > 2 ? 50 : 150
+          );
+          if (page > delayedPage) {
+            return delayedPage + 1;
+          }
+          if (page < delayedPage) {
+            return delayedPage - 1;
+          }
+        }
+      });
+    };
+    goToPage();
+    return () => {
+      clearTimeout(timeout);
+    };
+  }, [page]);
+
+  return (
+    <group {...props} rotation-y={-Math.PI / 2}>
+      <Cover
+        opened={delayedPage > 0}
+        bookClosed={delayedPage === 0 || delayedPage === pages.length}
+        texture="textures/book-cover.jpg"
+        position-x={-PAGE_WIDTH / 2 - 0.01}
+      />
+      <Cover
+        opened={delayedPage === pages.length}
+        bookClosed={delayedPage === 0 || delayedPage === pages.length}
+        texture="textures/book-back.jpg"
+        position-x={PAGE_WIDTH / 2 + 0.01}
+        rotation-y={Math.PI}
+      />
+      {[...pages].map((pageData, index) => (
+        <Page
+          key={index}
+          page={delayedPage}
+          number={index}
+          opened={delayedPage > index}
+          bookClosed={delayedPage === 0 || delayedPage === pages.length}
+          front={pageData.front}
+          back={pageData.back}
+          {...props}
+        />
+      ))}
     </group>
   );
 };

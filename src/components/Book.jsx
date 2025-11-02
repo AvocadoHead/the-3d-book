@@ -27,6 +27,7 @@ const pageGeometry = new THREE.BoxGeometry(
   PAGE_SEGMENTS,
   2
 );
+
 pageGeometry.translate(PAGE_WIDTH / 2, 0, 0);
 
 const position = pageGeometry.attributes.position;
@@ -37,8 +38,10 @@ const skinWeights = [];
 for (let i = 0; i < position.count; i++) {
   vertex.fromBufferAttribute(position, i);
   const x = vertex.x;
+
   const skinIndex = Math.max(0, Math.floor(x / SEGMENT_WIDTH));
   let skinWeight = (x % SEGMENT_WIDTH) / SEGMENT_WIDTH;
+
   skinIndexes.push(skinIndex, skinIndex + 1, 0, 0);
   skinWeights.push(1 - skinWeight, skinWeight, 0, 0);
 }
@@ -54,6 +57,7 @@ pageGeometry.setAttribute(
 
 const whiteColor = new THREE.Color("white");
 const emissiveColor = new THREE.Color("orange");
+
 const pageMaterials = [
   new THREE.MeshStandardMaterial({
     color: whiteColor,
@@ -62,113 +66,216 @@ const pageMaterials = [
     color: "#111",
   }),
   new THREE.MeshStandardMaterial({
-    color: whiteColor,
+    color: "#111",
   }),
-  new THREE.MeshStandardMaterial({
-    color: whiteColor,
-  }),
+  new THREE.MeshStandardMaterial({ color: whiteColor }),
 ];
 
 const Page = ({ number, front, back, page, opened, bookClosed, ...props }) => {
-  const [picture, picture2] = useTexture([front, back]);
-  picture.colorSpace = THREE.SRGBColorSpace;
-  picture2.colorSpace = THREE.SRGBColorSpace;
-
+  const [picture, picture2] = useTexture([`textures/${front}.jpg`, `textures/${back}.jpg`]);
+  const [highlighted, setHighlighted] = useState(false);
+  useCursor(highlighted);
   const group = useRef();
+
+  const turnedAt = useRef(0);
+  const lastOpened = useRef(opened);
+
   const skinnedMeshRef = useRef();
 
   const manualSkinnedMesh = useMemo(() => {
-    const bones = [];
-    for (let i = 0; i <= PAGE_SEGMENTS; i++) {
-      let bone = new THREE.Bone();
-      bones.push(bone);
-      if (i === 0) {
-        bone.position.x = 0;
-      } else {
-        bone.position.x = SEGMENT_WIDTH;
-      }
-      if (i > 0) {
-        bones[i - 1].add(bone);
-      }
-    }
-
-    const skeleton = new THREE.Skeleton(bones);
-
-    const materials = [
-      ...pageMaterials,
-      new THREE.MeshStandardMaterial({
-        color: whiteColor,
-        map: picture,
-      }),
-      new THREE.MeshStandardMaterial({
-        color: whiteColor,
-        map: picture2,
-      }),
-    ];
-    const mesh = new THREE.SkinnedMesh(pageGeometry, materials);
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-    mesh.frustumCulled = false;
-    mesh.add(skeleton.bones[0]);
-    mesh.bind(skeleton);
-    return mesh;
-  }, [picture, picture2]);
+    const manualSkinnedMesh = new THREE.SkinnedMesh(
+      pageGeometry,
+      pageMaterials
+    );
+    const skeleton = new THREE.Skeleton(
+      manualSkinnedMesh.skeleton.bones.map((bone) => {
+        const newBone = new THREE.Bone();
+        newBone.position.copy(bone.position);
+        return newBone;
+      })
+    );
+    manualSkinnedMesh.bind(skeleton);
+    return manualSkinnedMesh;
+  }, []);
 
   useFrame((_, delta) => {
     if (!skinnedMeshRef.current) {
       return;
     }
 
-    const targetRotation = opened ? -Math.PI / 2 : Math.PI / 2;
-    const insideCurveIntensity = opened ? -insideCurveStrength : 0;
-    const outsideCurveIntensity = opened ? 0 : outsideCurveStrength;
-    const turningIntensity =
-      Math.sin(skinnedMeshRef.current.rotation.y) * turningCurveStrength;
+    const emissiveIntensity = highlighted ? 0.22 : 0;
+    skinnedMeshRef.current.material[0].emissive = emissiveColor;
+    skinnedMeshRef.current.material[1].emissive = emissiveColor;
+    skinnedMeshRef.current.material[2].emissive = emissiveColor;
+    skinnedMeshRef.current.material[3].emissive = emissiveColor;
 
-    easing.dampAngle(
-      skinnedMeshRef.current.rotation,
-      "y",
-      targetRotation,
-      easingFactor,
+    easing.damp(
+      skinnedMeshRef.current.material[0],
+      "emissiveIntensity",
+      emissiveIntensity,
+      0.25,
       delta
     );
 
-    for (let i = 0; i < PAGE_SEGMENTS; i++) {
-      const scaledIndex = i / PAGE_SEGMENTS;
-      const boneRotation = scaledIndex * insideCurveIntensity;
-      const bone = manualSkinnedMesh.skeleton.bones[i];
+    easing.damp(
+      skinnedMeshRef.current.material[1],
+      "emissiveIntensity",
+      emissiveIntensity,
+      0.25,
+      delta
+    );
+    easing.damp(
+      skinnedMeshRef.current.material[2],
+      "emissiveIntensity",
+      emissiveIntensity,
+      0.25,
+      delta
+    );
+    easing.damp(
+      skinnedMeshRef.current.material[3],
+      "emissiveIntensity",
+      emissiveIntensity,
+      0.25,
+      delta
+    );
+
+    if (lastOpened.current !== opened) {
+      turnedAt.current = +new Date();
+      lastOpened.current = opened;
+    }
+    let turningTime = Math.min(400, new Date() - turnedAt.current) / 400;
+    turningTime = Math.sin(turningTime * Math.PI);
+
+    let targetRotation = opened ? -Math.PI / 2 : Math.PI / 2;
+    if (!bookClosed) {
+      targetRotation += degToRad(number * 0.8);
+    }
+
+    const bones = skinnedMeshRef.current.skeleton.bones;
+    for (let i = 0; i < bones.length; i++) {
+      const target = i === 0 ? group.current : bones[i];
+
+      const insideCurveIntensity = i < 8 ? Math.sin(i * 0.2 + 0.25) : 0;
+      const outsideCurveIntensity = i >= 8 ? Math.cos(i * 0.3 + 0.09) : 0;
+      const turningIntensity =
+        Math.sin(i * Math.PI * (1 / bones.length)) * turningTime;
+      let rotationAngle =
+        insideCurveStrength * insideCurveIntensity * targetRotation -
+        outsideCurveStrength * outsideCurveIntensity * targetRotation +
+        turningCurveStrength * turningIntensity * targetRotation;
+      let foldRotationAngle = degToRad(Math.sign(targetRotation) * 2);
+      if (bookClosed) {
+        if (i === 0) {
+          rotationAngle = targetRotation;
+          foldRotationAngle = 0;
+        } else {
+          rotationAngle = 0;
+          foldRotationAngle = 0;
+        }
+      }
       easing.dampAngle(
-        bone.rotation,
+        target.rotation,
         "y",
-        boneRotation +
-          turningIntensity * Math.sin(scaledIndex * Math.PI) +
-          outsideCurveIntensity * Math.sin(scaledIndex * Math.PI),
-        bookClosed ? easingFactorFold / 2 : easingFactorFold,
+        rotationAngle,
+        easingFactor,
+        delta
+      );
+
+      const foldIntensity =
+        i === 0
+          ? Math.sin(turningTime * Math.PI) * 0.3
+          : Math.sin(turningTime * Math.PI) *
+            Math.pow(1 - i / bones.length, 3);
+
+      easing.dampAngle(
+        target.rotation,
+        "x",
+        foldRotationAngle * foldIntensity,
+        easingFactorFold,
         delta
       );
     }
   });
 
   return (
-    <group ref={group} {...props}>
+    <group
+      {...props}
+      ref={group}
+      onPointerEnter={(e) => {
+        e.stopPropagation();
+        setHighlighted(true);
+      }}
+      onPointerLeave={(e) => {
+        e.stopPropagation();
+        setHighlighted(false);
+      }}
+    >
       <primitive
         object={manualSkinnedMesh}
         ref={skinnedMeshRef}
         position-z={-number * PAGE_DEPTH + page * PAGE_DEPTH}
       />
+      <mesh position={[0, 0, -number * PAGE_DEPTH + page * PAGE_DEPTH]}>
+        <boxGeometry args={[PAGE_WIDTH, PAGE_HEIGHT, PAGE_DEPTH]} />
+        <meshBasicMaterial map={picture} />
+      </mesh>
+      <mesh
+        position={[0, 0, -number * PAGE_DEPTH + page * PAGE_DEPTH + PAGE_DEPTH]}
+      >
+        <boxGeometry args={[PAGE_WIDTH, PAGE_HEIGHT, PAGE_DEPTH]} />
+        <meshBasicMaterial map={picture2} />
+      </mesh>
     </group>
   );
 };
 
-const Cover = ({ texture, opened, bookClosed, ...props }) => {
-  const [picture] = useTexture([texture]);
-  picture.colorSpace = THREE.SRGBColorSpace;
+const Cover = ({ bookClosed, texture, opened, ...props }) => {
+  const OFFSET = 0.01;
+  const PAGE_COVER_WIDTH = 1.28 + 2 * OFFSET;
+  const [hovered, setHovered] = useState(false);
+  const [coverTexture] = useTexture([texture]);
+  useCursor(hovered);
+  const coverGroupRef = useRef();
+
+  useFrame((_, delta) => {
+    const targetRotation = opened ? -Math.PI / 2 : 0;
+    easing.dampAngle(
+      coverGroupRef.current.rotation,
+      "y",
+      targetRotation,
+      easingFactor,
+      delta
+    );
+    const foldRotationAngle = bookClosed ? 0 : degToRad(2);
+    easing.dampAngle(
+      coverGroupRef.current.rotation,
+      "x",
+      foldRotationAngle,
+      easingFactorFold,
+      delta
+    );
+  });
 
   return (
-    <group {...props}>
-      <mesh position-z={-0.01}>
-        <boxGeometry args={[PAGE_WIDTH, PAGE_HEIGHT, 0.002]} />
-        <meshBasicMaterial map={picture} />
+    <group
+      {...props}
+      ref={coverGroupRef}
+      onPointerEnter={(e) => {
+        e.stopPropagation();
+        setHovered(true);
+      }}
+      onPointerLeave={(e) => {
+        e.stopPropagation();
+        setHovered(false);
+      }}
+    >
+      <mesh receiveShadow>
+        <boxGeometry args={[PAGE_COVER_WIDTH, PAGE_HEIGHT, PAGE_DEPTH]} />
+        <meshStandardMaterial
+          map={coverTexture}
+          emissive={emissiveColor}
+          emissiveIntensity={hovered ? 0.22 : 0}
+        />
       </mesh>
     </group>
   );

@@ -36,12 +36,17 @@ for (let i = 1; i < pictures.length - 1; i += 2) {
   });
 }
 
+pages.push({
+  front: pictures[pictures.length - 1],
+  back: "book-back",
+});
+
 export const UI = () => {
   const [page, setPage] = useAtom(pageAtom);
 
   useEffect(() => {
     const audio = new Audio("/audios/page-flip-01a.mp3");
-    audio.play();
+    // audio.play();
   }, [page]);
 
   return (
@@ -51,7 +56,7 @@ export const UI = () => {
           className="pointer-events-auto mt-10 ml-10"
           href="https://youtube.com/@wawasensei"
         >
-          <img className="w-20" src="/images/Optopia Eye.jpg" />
+          <img className="w-20" src="/images/logo.png" />
         </a>
         <div className="w-full overflow-auto pointer-events-auto flex justify-center">
           <div className="overflow-auto flex items-center gap-4 max-w-full p-10">
@@ -68,12 +73,24 @@ export const UI = () => {
                 {index === 0 ? "Cover" : `Page ${index}`}
               </button>
             ))}
-            <button
-              className="border-transparent hover:border-white transition-all duration-300  px-4 py-3 rounded-full  text-lg uppercase shrink-0 border bg-black/30 text-white"
-              onClick={() => setPage(pages.length)}
-            >
-              Back Cover
-            </button>
+          </div>
+        </div>
+        <div className="overflow-auto pointer-events-auto flex justify-center">
+          <div className="w-full max-w-4xl rounded-full bg-black/30 p-2 mt-4 mb-10">
+            <div className="overflow-hidden whitespace-nowrap">
+              <div className="animate-scrolling-banner inline-block">
+                <span className="mx-8 text-white text-xl">שאלה לי אליך</span>
+                <span className="mx-8 text-white text-xl">שאלה לי אליך</span>
+                <span className="mx-8 text-white text-xl">שאלה לי אליך</span>
+                <span className="mx-8 text-white text-xl">שאלה לי אליך</span>
+                <span className="mx-8 text-white text-xl">שאלה לי אליך</span>
+                <span className="mx-8 text-white text-xl">שאלה לי אליך</span>
+                <span className="mx-8 text-white text-xl">שאלה לי אליך</span>
+                <span className="mx-8 text-white text-xl">שאלה לי אליך</span>
+                <span className="mx-8 text-white text-xl">שאלה לי אליך</span>
+                <span className="mx-8 text-white text-xl">שאלה לי אליך</span>
+              </div>
+            </div>
           </div>
         </div>
       </main>

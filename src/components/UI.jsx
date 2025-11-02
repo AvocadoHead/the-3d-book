@@ -52,12 +52,6 @@ export const UI = () => {
   return (
     <>
       <main className=" pointer-events-none select-none z-10 fixed  inset-0  flex justify-between flex-col">
-        <a
-          className="pointer-events-auto mt-10 ml-10"
-          href="https://youtube.com/@wawasensei"
-        >
-          <img className="w-20" src="/images/logo.png" />
-        </a>
         <div className="w-full overflow-auto pointer-events-auto flex justify-center">
           <div className="overflow-auto flex items-center gap-4 max-w-full p-10">
             {[...pages].map((_, index) => (
@@ -76,6 +70,9 @@ export const UI = () => {
           </div>
         </div>
       </main>
+      <video className="pointer-events-none fixed bottom-0 right-0 w-48 opacity-50" autoPlay loop muted playsInline>
+        <source src="videos/Optopia Eye.mp4" type="video/mp4" />
+      </video>
     </>
   );
 };

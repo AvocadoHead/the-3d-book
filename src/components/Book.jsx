@@ -55,9 +55,14 @@ pageGeometry.setAttribute(
 );
 
 const whiteColor = new THREE.Color("white");
-const emissiveColor = new THREE.Color("orange");
 
 const pageMaterials = [
+  new THREE.MeshStandardMaterial({
+    color: whiteColor,
+  }),
+  new THREE.MeshStandardMaterial({
+    color: "#111",
+  }),
   new THREE.MeshStandardMaterial({
     color: whiteColor,
   }),
@@ -66,7 +71,16 @@ const pageMaterials = [
   }),
 ];
 
-const Page = ({ number, front, back, page, opened, bookClosed, ...props }) => {
+const Page = ({
+  number,
+  front,
+  back,
+  page,
+  opened,
+  bookClosed,
+  ...props
+}) => {
+  const [, setPage] = useAtom(pageAtom);
   const [picture, picture2] = useTexture([front, back]);
   picture.anisotropy = 16;
   picture2.anisotropy = 16;
@@ -75,120 +89,72 @@ const Page = ({ number, front, back, page, opened, bookClosed, ...props }) => {
   const skinnedMeshRef = useRef();
 
   const manualSkinnedMesh = useMemo(() => {
-    const bones = [];
-    for (let i = 0; i <= PAGE_SEGMENTS; i++) {
-      let bone = new THREE.Bone();
-      bones.push(bone);
-      if (i === 0) {
-        bone.position.x = 0;
-      } else {
-        bone.position.x = SEGMENT_WIDTH;
-      }
-      if (i > 0) {
-        bones[i - 1].add(bone);
-      }
-    }
-    const skeleton = new THREE.Skeleton(bones);
-
-    const materials = [
+    const pageMats = [
       ...pageMaterials,
       new THREE.MeshStandardMaterial({
-        color: whiteColor,
         map: picture,
       }),
       new THREE.MeshStandardMaterial({
-        color: whiteColor,
         map: picture2,
       }),
     ];
-    const mesh = new THREE.SkinnedMesh(pageGeometry, materials);
+    const mesh = new THREE.SkinnedMesh(pageGeometry, pageMats);
+    mesh.frustumCulled = false;
     mesh.castShadow = true;
     mesh.receiveShadow = true;
-    mesh.frustumCulled = false;
-    mesh.add(skeleton.bones[0]);
-    mesh.bind(skeleton);
     return mesh;
   }, [picture, picture2]);
 
-  const [_, setPage] = useAtom(pageAtom);
-  const lastOpened = useRef(opened);
-  const turnedAt = useRef(0);
-  const highlighted = false;
-
   useFrame((_, delta) => {
-    if (!skinnedMeshRef.current) {
-      return;
+    if (!skinnedMeshRef.current) return;
+
+    const emptyArray = new Array(PAGE_SEGMENTS + 1).fill(0);
+    const targetArray = [...emptyArray];
+
+    let easingFactorCurrent = easingFactor;
+
+    if (bookClosed) {
+      easingFactorCurrent = easingFactorFold;
     }
 
-    let targetRotation = opened ? -Math.PI / 2 : Math.PI / 2;
-    if (!bookClosed) {
-      targetRotation += degToRad(number * 0.25);
-    }
-
-    const bones = skinnedMeshRef.current.skeleton.bones;
-    for (let i = 0; i < bones.length; i++) {
-      const target = i === 0 ? group.current : bones[i];
-
-      const insideCurveIntensity = i < 8 ? Math.sin(i * 0.2 + 0.25) : 0;
-      const outsideCurveIntensity = i >= 8 ? Math.cos(i * 0.3 + 0.09) : 0;
-      const turningIntensity =
-        Math.sin(i * Math.PI * (1 / bones.length)) * turnedAt.current;
-      let rotationAngle =
-        insideCurveStrength * insideCurveIntensity * targetRotation -
-        outsideCurveStrength * outsideCurveIntensity * targetRotation +
-        turningCurveStrength * turningIntensity * targetRotation;
-      let foldRotationAngle = degToRad(Math.sign(targetRotation) * 2);
-      if (bookClosed) {
-        if (i === 0) {
-          rotationAngle = targetRotation;
-          foldRotationAngle = 0;
-        } else {
-          rotationAngle = 0;
-          foldRotationAngle = 0;
-        }
+    if (opened) {
+      for (let i = 0; i < PAGE_SEGMENTS + 1; i++) {
+        const distance = i / PAGE_SEGMENTS;
+        const insideCurve = Math.sin(distance * Math.PI) * insideCurveStrength;
+        targetArray[i] = insideCurve;
       }
-      easing.dampAngle(
-        target.rotation,
+    } else {
+      for (let i = 0; i < PAGE_SEGMENTS + 1; i++) {
+        const distance = i / PAGE_SEGMENTS;
+        const outsideCurve = Math.sin(distance * Math.PI) * -outsideCurveStrength;
+        targetArray[i] = outsideCurve;
+      }
+    }
+
+    const skeleton = skinnedMeshRef.current.skeleton;
+
+    for (let i = 0; i < skeleton.bones.length; i++) {
+      const bone = skeleton.bones[i];
+
+      easing.damp(
+        bone.rotation,
         "y",
-        rotationAngle,
-        easingFactor,
-        delta
-      );
-
-      const foldIntensity =
-        i > 8
-          ? Math.sin(i * Math.PI * (1 / bones.length) - 0.5) *
-            turnedAt.current
-          : 0;
-      easing.dampAngle(
-        target.rotation,
-        "x",
-        foldRotationAngle * foldIntensity,
-        easingFactorFold,
+        degToRad(targetArray[i]),
+        easingFactorCurrent,
         delta
       );
     }
 
-    if (lastOpened.current !== opened) {
-      turnedAt.current = 1;
-      lastOpened.current = opened;
-    }
-    easing.damp(turnedAt, "current", 0, 0.5, delta);
+    let turningPageRotation = 0;
 
-    const emissiveIntensity = highlighted ? 0.22 : 0;
-    skinnedMeshRef.current.material[2].emissive = emissiveColor;
-    skinnedMeshRef.current.material[3].emissive = emissiveColor;
+    if (opened) {
+      turningPageRotation = Math.PI;
+    }
+
     easing.damp(
-      skinnedMeshRef.current.material[2],
-      "emissiveIntensity",
-      emissiveIntensity,
-      0.18,
-      delta
-    );
-    easing.damp(
-      skinnedMeshRef.current.material[3],
-      "emissiveIntensity",
-      emissiveIntensity,
+      group.current.rotation,
+      "y",
+      turningPageRotation,
       0.18,
       delta
     );
@@ -222,7 +188,6 @@ const Page = ({ number, front, back, page, opened, bookClosed, ...props }) => {
 
 export const Book = ({ ...props }) => {
   const [page] = useAtom(pageAtom);
-
   return (
     <group {...props} rotation-y={-Math.PI / 2}>
       {[...pages].map((pageData, index) =>

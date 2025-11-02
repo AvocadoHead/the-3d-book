@@ -62,22 +62,15 @@ const pageMaterials = [
     color: whiteColor,
   }),
   new THREE.MeshStandardMaterial({
-    color: "#111",
+    color: whiteColor,
   }),
-  new THREE.MeshStandardMaterial({
-    color: "#111",
-  }),
-  new THREE.MeshStandardMaterial({ color: whiteColor }),
 ];
 
 const Page = ({ number, front, back, page, opened, bookClosed, ...props }) => {
-  const [picture, picture2, pictureRoughness] = useTexture([
-    front,
-    back,
-    "textures/book-cover-roughness.jpg",
-  ]);
+  const [picture, picture2] = useTexture([front, back]);
   picture.anisotropy = 16;
   picture2.anisotropy = 16;
+
   const group = useRef();
   const skinnedMeshRef = useRef();
 
@@ -102,18 +95,10 @@ const Page = ({ number, front, back, page, opened, bookClosed, ...props }) => {
       new THREE.MeshStandardMaterial({
         color: whiteColor,
         map: picture,
-        roughnessMap: pictureRoughness,
-        roughness: 0.5,
-        emissive: emissiveColor,
-        emissiveIntensity: 0,
       }),
       new THREE.MeshStandardMaterial({
         color: whiteColor,
         map: picture2,
-        roughnessMap: pictureRoughness,
-        roughness: 0.5,
-        emissive: emissiveColor,
-        emissiveIntensity: 0,
       }),
     ];
     const mesh = new THREE.SkinnedMesh(pageGeometry, materials);
@@ -123,31 +108,21 @@ const Page = ({ number, front, back, page, opened, bookClosed, ...props }) => {
     mesh.add(skeleton.bones[0]);
     mesh.bind(skeleton);
     return mesh;
-  }, [picture, picture2, pictureRoughness]);
+  }, [picture, picture2]);
+
+  const [_, setPage] = useAtom(pageAtom);
+  const lastOpened = useRef(opened);
+  const turnedAt = useRef(0);
+  const highlighted = false;
 
   useFrame((_, delta) => {
     if (!skinnedMeshRef.current) {
       return;
     }
 
-    const emissiveIntensity = highlighted ? 0.22 : 0;
-    skinnedMeshRef.current.material[4].emissiveIntensity =
-      skinnedMeshRef.current.material[5].emissiveIntensity = THREE.MathUtils.lerp(
-        skinnedMeshRef.current.material[4].emissiveIntensity,
-        emissiveIntensity,
-        0.1
-      );
-
-    if (lastOpened.current !== opened) {
-      turnedAt.current = +new Date();
-      lastOpened.current = opened;
-    }
-    let turningTime = Math.min(400, new Date() - turnedAt.current) / 400;
-    turningTime = Math.sin(turningTime * Math.PI);
-
     let targetRotation = opened ? -Math.PI / 2 : Math.PI / 2;
     if (!bookClosed) {
-      targetRotation += degToRad(number * 0.8);
+      targetRotation += degToRad(number * 0.25);
     }
 
     const bones = skinnedMeshRef.current.skeleton.bones;
@@ -157,7 +132,7 @@ const Page = ({ number, front, back, page, opened, bookClosed, ...props }) => {
       const insideCurveIntensity = i < 8 ? Math.sin(i * 0.2 + 0.25) : 0;
       const outsideCurveIntensity = i >= 8 ? Math.cos(i * 0.3 + 0.09) : 0;
       const turningIntensity =
-        Math.sin(i * Math.PI * (1 / bones.length)) * turningTime;
+        Math.sin(i * Math.PI * (1 / bones.length)) * turnedAt.current;
       let rotationAngle =
         insideCurveStrength * insideCurveIntensity * targetRotation -
         outsideCurveStrength * outsideCurveIntensity * targetRotation +
@@ -182,7 +157,8 @@ const Page = ({ number, front, back, page, opened, bookClosed, ...props }) => {
 
       const foldIntensity =
         i > 8
-          ? Math.sin(i * Math.PI * (1 / bones.length) - 0.5) * turningTime
+          ? Math.sin(i * Math.PI * (1 / bones.length) - 0.5) *
+            turnedAt.current
           : 0;
       easing.dampAngle(
         target.rotation,
@@ -192,12 +168,31 @@ const Page = ({ number, front, back, page, opened, bookClosed, ...props }) => {
         delta
       );
     }
-  });
 
-  const [_, setPage] = useAtom(pageAtom);
-  const highlighted = page === _;
-  const lastOpened = useRef(opened);
-  const turnedAt = useRef(0);
+    if (lastOpened.current !== opened) {
+      turnedAt.current = 1;
+      lastOpened.current = opened;
+    }
+    easing.damp(turnedAt, "current", 0, 0.5, delta);
+
+    const emissiveIntensity = highlighted ? 0.22 : 0;
+    skinnedMeshRef.current.material[2].emissive = emissiveColor;
+    skinnedMeshRef.current.material[3].emissive = emissiveColor;
+    easing.damp(
+      skinnedMeshRef.current.material[2],
+      "emissiveIntensity",
+      emissiveIntensity,
+      0.18,
+      delta
+    );
+    easing.damp(
+      skinnedMeshRef.current.material[3],
+      "emissiveIntensity",
+      emissiveIntensity,
+      0.18,
+      delta
+    );
+  });
 
   return (
     <group

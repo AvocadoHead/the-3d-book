@@ -18,19 +18,16 @@ import {
 } from "three";
 import { degToRad } from "three/src/math/MathUtils.js";
 import { pageAtom, pages } from "./UI";
-
 const easingFactor = 0.5; // Controls the speed of the easing
 const easingFactorFold = 0.3; // Controls the speed of the easing
 const insideCurveStrength = 0.18; // Controls the strength of the curve
 const outsideCurveStrength = 0.05; // Controls the strength of the curve
 const turningCurveStrength = 0.09; // Controls the strength of the curve
-
 const PAGE_WIDTH = 1.28;
 const PAGE_HEIGHT = 1.71; // 4:3 aspect ratio
 const PAGE_DEPTH = 0.003;
 const PAGE_SEGMENTS = 30;
 const SEGMENT_WIDTH = PAGE_WIDTH / PAGE_SEGMENTS;
-
 const pageGeometry = new BoxGeometry(
   PAGE_WIDTH,
   PAGE_HEIGHT,
@@ -38,14 +35,11 @@ const pageGeometry = new BoxGeometry(
   PAGE_SEGMENTS,
   2
 );
-
 pageGeometry.translate(PAGE_WIDTH / 2, 0, 0);
-
 const position = pageGeometry.attributes.position;
 const vertex = new Vector3();
 const skinIndexes = [];
 const skinWeights = [];
-
 for (let i = 0; i < position.count; i++) {
   vertex.fromBufferAttribute(position, i);
   const x = vertex.x;
@@ -54,7 +48,6 @@ for (let i = 0; i < position.count; i++) {
   skinIndexes.push(skinIndex, skinIndex + 1, 0, 0);
   skinWeights.push(1 - skinWeight, skinWeight, 0, 0);
 }
-
 pageGeometry.setAttribute(
   "skinIndex",
   new Uint16BufferAttribute(skinIndexes, 4)
@@ -63,11 +56,9 @@ pageGeometry.setAttribute(
   "skinWeight",
   new Float32BufferAttribute(skinWeights, 4)
 );
-
 export const Book = ({ ...props }) => {
   const [page] = useAtom(pageAtom);
   const [delayedPage, setDelayedPage] = useState(page);
-
   useEffect(() => {
     let timeout;
     const goToPage = () => {
@@ -95,9 +86,8 @@ export const Book = ({ ...props }) => {
       clearTimeout(timeout);
     };
   }, [page]);
-
   return (
-    <group {...props}>
+    <group>
       {[...pages].map((pageData, index) => (
         <Page
           key={index}
@@ -111,7 +101,6 @@ export const Book = ({ ...props }) => {
     </group>
   );
 };
-
 const Page = ({
   number,
   front,
@@ -128,10 +117,8 @@ const Page = ({
   picture.colorSpace = picture2.colorSpace = SRGBColorSpace;
   const group = useRef();
   const skinnedMeshRef = useRef();
-
   const turnedAt = useRef(0);
   const lastOpened = useRef(opened);
-
   const manualSkinnedMesh = useMemo(() => {
     const bones = [];
     for (let i = 0; i <= PAGE_SEGMENTS; i++) {
@@ -147,7 +134,6 @@ const Page = ({
       }
     }
     const skeleton = new Skeleton(bones);
-
     const materials = [
       new MeshStandardMaterial({
         color: 0xffffff,
@@ -164,7 +150,6 @@ const Page = ({
         color: 0xfafafa,
       }),
     ];
-
     const mesh = new SkinnedMesh(pageGeometry, materials);
     mesh.castShadow = true;
     mesh.receiveShadow = true;
@@ -173,12 +158,10 @@ const Page = ({
     mesh.bind(skeleton);
     return mesh;
   }, [picture, picture2]);
-
   useFrame((_, delta) => {
     if (!skinnedMeshRef.current) {
       return;
     }
-
     const emptyPage = picture === undefined || picture2 === undefined;
     const emptyPageColor = emptyPage ? 0xfafafa : 0xffffff;
     if (!turnedAt.current) {
@@ -195,9 +178,7 @@ const Page = ({
         delta
       );
     }
-
     const targetRotation = opened ? -Math.PI / 2 : Math.PI / 2;
-
     if (!bookClosed) {
       easing.damp(group.current.rotation, "y", targetRotation, easingFactor, delta);
     }
@@ -207,11 +188,9 @@ const Page = ({
     }
     let turningTime = Math.min(400, new Date() - turnedAt.current) / 400;
     turningTime = Math.sin(turningTime * Math.PI);
-
     let bones = skinnedMeshRef.current.skeleton.bones;
     for (let i = 0; i < bones.length; i++) {
       const target = i === 0 ? group.current : bones[i];
-
       const insideCurveIntensity = i < 8 ? Math.sin(i * 0.2 + 0.25) : 0;
       const outsideCurveIntensity = i >= 8 ? Math.cos(i * 0.3 + 0.09) : 0;
       const turningIntensity =
@@ -250,10 +229,8 @@ const Page = ({
       );
     }
   });
-
   const [_, setHovered] = useState(false);
   useCursor(_);
-
   return (
     <group
       {...props}
@@ -268,3 +245,12 @@ const Page = ({
     </group>
   );
 };
+
+pages.forEach((page) => {
+  if (page.front) {
+    useTexture.preload(`textures/${page.front}.jpg`);
+  }
+  if (page.back) {
+    useTexture.preload(`textures/${page.back}.jpg`);
+  }
+});

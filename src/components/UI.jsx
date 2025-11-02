@@ -21,7 +21,6 @@ const pictures = [
 ];
 
 export const pageAtom = atom(0);
-
 export const pages = [
   {
     front: "book-cover",
@@ -45,8 +44,8 @@ export const UI = () => {
   const [page, setPage] = useAtom(pageAtom);
 
   useEffect(() => {
-    const audio = new Audio("/audios/page-flip-01a.mp3");
-    audio.play();
+    // const audio = new Audio("/audios/page-flip-01a.mp3");
+    // audio.play();
   }, [page]);
 
   return (
@@ -70,7 +69,7 @@ export const UI = () => {
                 }`}
                 onClick={() => setPage(index)}
               >
-                {index === 0 ? "Cover" : `Page ${index}`}
+                {index === 0 ? "Cover" : `${index}`}
               </button>
             ))}
             <button
@@ -85,56 +84,17 @@ export const UI = () => {
             </button>
           </div>
         </div>
-      </main>
-
-      <div className="fixed inset-0 flex items-center -rotate-2 select-none">
-        <div className="relative">
-          <div className="bg-white/0  animate-horizontal-scroll flex items-center gap-8 w-max px-8">
-            <h1 className="shrink-0 text-white text-10xl font-black ">
-              Wawa Sensei
-            </h1>
-            <h2 className="shrink-0 text-white text-8xl italic font-light">
-              React Three Fiber
-            </h2>
-            <h2 className="shrink-0 text-white text-12xl font-bold">
-              Three.js
-            </h2>
-            <h2 className="shrink-0 text-transparent text-12xl font-bold italic outline-text">
-              RealTime 3D
-            </h2>
-            <h2 className="shrink-0 text-white text-9xl font-medium">
-              WebGL
-            </h2>
-            <h2 className="shrink-0 text-white text-9xl font-extralight italic">
-              Game Development
-            </h2>
-            <h2 className="shrink-0 text-white text-13xl font-bold">
-              r3f
-            </h2>
-            <h1 className="shrink-0 text-white text-10xl font-black ">
-              Wawa Sensei
-            </h1>
-            <h2 className="shrink-0 text-white text-8xl italic font-light">
-              React Three Fiber
-            </h2>
-            <h2 className="shrink-0 text-white text-12xl font-bold">
-              Three.js
-            </h2>
-            <h2 className="shrink-0 text-transparent text-12xl font-bold italic outline-text">
-              RealTime 3D
-            </h2>
-            <h2 className="shrink-0 text-white text-9xl font-medium">
-              WebGL
-            </h2>
-            <h2 className="shrink-0 text-white text-9xl font-extralight italic">
-              Game Development
-            </h2>
-            <h2 className="shrink-0 text-white text-13xl font-bold">
-              r3f
-            </h2>
+        <div className="overflow-hidden bg-black pointer-events-none print:hidden">
+          <div className="flex items-center gap-8 w-full justify-center">
+            <h1 style={{transform: 'translateX(-100%)'}} className="text-white text-4xl font-black">שאלה לי אליך</h1>
           </div>
         </div>
-      </div>
+        <div className="overflow-hidden bg-black pointer-events-none print:hidden">
+          <div className="flex items-center gap-8 w-full justify-center">
+            <h1 style={{transform: 'translateX(100%)'}} className="text-white text-4xl font-black">שאלה לי אליך</h1>
+          </div>
+        </div>
+      </main>
     </>
   );
 };

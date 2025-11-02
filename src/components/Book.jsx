@@ -21,6 +21,7 @@ import { pageAtom, pages } from "./UI";
 
 const easingFactor = 0.5; // Controls the speed of the easing
 const easingFactorFold = 0.3; // Controls the speed of the easing
+
 const insideCurveStrength = 0.18; // Controls the strength of the curve
 const outsideCurveStrength = 0.05; // Controls the strength of the curve
 const turningCurveStrength = 0.09; // Controls the strength of the curve
@@ -41,72 +42,80 @@ const pageGeometry = new BoxGeometry(
 
 pageGeometry.translate(PAGE_WIDTH / 2, 0, 0);
 
-const position = pageGeometry.attributes.position;
-const vertex = new Vector3();
-const skinIndexes = [];
-const skinWeights = [];
-
-for (let i = 0; i < position.count; i++) {
-  // ALL VERTICES
-  vertex.fromBufferAttribute(position, i); // get the vertex
-  const x = vertex.x; // get the x position of the vertex
-
-  const skinIndex = Math.max(0, Math.floor(x / SEGMENT_WIDTH)); // calculate the skin index
-  let skinWeight = (x % SEGMENT_WIDTH) / SEGMENT_WIDTH; // calculate the skin weight
-
-  skinIndexes.push(skinIndex, skinIndex + 1, 0, 0); // set the skin indexes
-  skinWeights.push(1 - skinWeight, skinWeight, 0, 0); // set the skin weights
-}
-
-pageGeometry.setAttribute(
-  "skinIndex",
-  new Uint16BufferAttribute(skinIndexes, 4)
-);
-pageGeometry.setAttribute(
-  "skinWeight",
-  new Float32BufferAttribute(skinWeights, 4)
-);
-
 const whiteColor = new Color("white");
 const emissiveColor = new Color("orange");
 
 const pageMaterials = [
-  new MeshStandardMaterial({
-    color: whiteColor,
-  }),
-  new MeshStandardMaterial({
-    color: "#111",
-  }),
-  new MeshStandardMaterial({
-    color: whiteColor,
-  }),
-  new MeshStandardMaterial({
-    color: whiteColor,
-  }),
+  new MeshStandardMaterial({ color: whiteColor }),
+  new MeshStandardMaterial({ color: "#111" }),
+  new MeshStandardMaterial({ color: whiteColor }),
+  new MeshStandardMaterial({ color: whiteColor }),
 ];
 
+// Helper function to add extension if needed
+const getTexturePath = (textureName) => {
+  const hasExtension = /\.(jpg|jpeg|png|gif|webp)$/i.test(textureName);
+  return `textures/${textureName}${hasExtension ? '' : '.jpg'}`;
+};
+
 pages.forEach((page) => {
-  useTexture.preload(`textures/${page.front}.jpg`);
-  useTexture.preload(`textures/${page.back}.jpg`);
-  useTexture.preload(`textures/book-cover-roughness.jpg`);
+  useTexture.preload(getTexturePath(page.front));
+  useTexture.preload(getTexturePath(page.back));
 });
 
 const Page = ({ number, front, back, page, opened, bookClosed, ...props }) => {
   const [picture, picture2, pictureRoughness] = useTexture([
-    `textures/${front}.jpg`,
-    `textures/${back}.jpg`,
-    ...(number === 0 || number === pages.length - 1
-      ? [`textures/book-cover-roughness.jpg`]
-      : []),
+    getTexturePath(front),
+    getTexturePath(back),
+    "./textures/book-roughness.jpg",
   ]);
   picture.colorSpace = picture2.colorSpace = SRGBColorSpace;
   const group = useRef();
+  const skinnedMeshRef = useRef();
+
   const turnedAt = useRef(0);
   const lastOpened = useRef(opened);
 
-  const skinnedMeshRef = useRef();
-
   const manualSkinnedMesh = useMemo(() => {
+    const geometry = pageGeometry.clone();
+    const materials = pageMaterials;
+
+    const skinIndexData = [];
+    const skinWeightData = [];
+
+    const indices = geometry.getIndex().array;
+    const vertices = geometry.attributes.position.array;
+
+    for (let i = 0; i < vertices.length / 3; i++) {
+      const x = vertices[i * 3];
+
+      // The bones are organized in a line along the x axis
+      const segmentIndex = Math.floor(x / SEGMENT_WIDTH);
+
+      const segmentStart = segmentIndex * SEGMENT_WIDTH;
+      const segmentEnd = segmentStart + SEGMENT_WIDTH;
+
+      const weight1 = 1 - (x - segmentStart) / SEGMENT_WIDTH;
+      const weight2 = 1 - weight1;
+
+      skinIndexData.push(segmentIndex, segmentIndex + 1, 0, 0);
+      skinWeightData.push(weight1, weight2, 0, 0);
+    }
+
+    geometry.setAttribute(
+      "skinIndex",
+      new Uint16BufferAttribute(skinIndexData, 4)
+    );
+    geometry.setAttribute(
+      "skinWeight",
+      new Float32BufferAttribute(skinWeightData, 4)
+    );
+
+    const mesh = new SkinnedMesh(geometry, materials);
+    return mesh;
+  }, []);
+
+  const bones = useMemo(() => {
     const bones = [];
     for (let i = 0; i <= PAGE_SEGMENTS; i++) {
       let bone = new Bone();
@@ -117,68 +126,40 @@ const Page = ({ number, front, back, page, opened, bookClosed, ...props }) => {
         bone.position.x = SEGMENT_WIDTH;
       }
       if (i > 0) {
-        bones[i - 1].add(bone); // attach the new bone to the previous bone
+        bones[i - 1].add(bone);
       }
     }
-    const skeleton = new Skeleton(bones);
-
-    const materials = [
-      ...pageMaterials,
-      new MeshStandardMaterial({
-        color: whiteColor,
-        map: picture,
-        ...(number === 0
-          ? {
-              roughnessMap: pictureRoughness,
-            }
-          : {
-              roughness: 0.1,
-            }),
-        emissive: emissiveColor,
-        emissiveIntensity: 0,
-      }),
-      new MeshStandardMaterial({
-        color: whiteColor,
-        map: picture2,
-        ...(number === pages.length - 1
-          ? {
-              roughnessMap: pictureRoughness,
-            }
-          : {
-              roughness: 0.1,
-            }),
-        emissive: emissiveColor,
-        emissiveIntensity: 0,
-      }),
-    ];
-    const mesh = new SkinnedMesh(pageGeometry, materials);
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-    mesh.frustumCulled = false;
-    mesh.add(skeleton.bones[0]);
-    mesh.bind(skeleton);
-    return mesh;
+    return bones;
   }, []);
 
-  // useHelper(skinnedMeshRef, SkeletonHelper, "red");
+  const skeleton = useMemo(() => {
+    return new Skeleton(bones);
+  }, [bones]);
+
+  const [highlighted, setHighlighted] = useState(false);
+  useCursor(highlighted);
 
   useFrame((_, delta) => {
     if (!skinnedMeshRef.current) {
       return;
     }
 
-    const emissiveIntensity = highlighted ? 0.22 : 0;
-    skinnedMeshRef.current.material[4].emissiveIntensity =
-      skinnedMeshRef.current.material[5].emissiveIntensity = MathUtils.lerp(
-        skinnedMeshRef.current.material[4].emissiveIntensity,
-        emissiveIntensity,
-        0.1
-      );
+    const emissiveColor = highlighted ? "orange" : "white";
+
+    skinnedMeshRef.current.material[0].emissive.lerp(
+      whiteColor,
+      highlighted ? 0.22 : 0
+    );
+    skinnedMeshRef.current.material[1].emissive.lerp(
+      whiteColor,
+      highlighted ? 0.22 : 0
+    );
 
     if (lastOpened.current !== opened) {
       turnedAt.current = +new Date();
       lastOpened.current = opened;
     }
+
     let turningTime = Math.min(400, new Date() - turnedAt.current) / 400;
     turningTime = Math.sin(turningTime * Math.PI);
 
@@ -187,7 +168,7 @@ const Page = ({ number, front, back, page, opened, bookClosed, ...props }) => {
       targetRotation += degToRad(number * 0.8);
     }
 
-    const bones = skinnedMeshRef.current.skeleton.bones;
+    const bones = skeleton.bones;
     for (let i = 0; i < bones.length; i++) {
       const target = i === 0 ? group.current : bones[i];
 
@@ -231,9 +212,12 @@ const Page = ({ number, front, back, page, opened, bookClosed, ...props }) => {
     }
   });
 
-  const [_, setPage] = useAtom(pageAtom);
-  const [highlighted, setHighlighted] = useState(false);
-  useCursor(highlighted);
+  useEffect(() => {
+    if (!skinnedMeshRef.current) {
+      return;
+    }
+    skinnedMeshRef.current.skeleton = skeleton;
+  }, [skeleton]);
 
   return (
     <group
@@ -247,16 +231,22 @@ const Page = ({ number, front, back, page, opened, bookClosed, ...props }) => {
         e.stopPropagation();
         setHighlighted(false);
       }}
-      onClick={(e) => {
-        e.stopPropagation();
-        setPage(opened ? number : number + 1);
-        setHighlighted(false);
-      }}
     >
+      <primitive object={bones[0]} />
       <primitive
         object={manualSkinnedMesh}
         ref={skinnedMeshRef}
         position-z={-number * PAGE_DEPTH + page * PAGE_DEPTH}
+      />
+      <meshStandardMaterial
+        attach="material-0"
+        map={picture}
+        roughnessMap={pictureRoughness}
+      />
+      <meshStandardMaterial
+        attach="material-2"
+        map={picture2}
+        roughnessMap={pictureRoughness}
       />
     </group>
   );

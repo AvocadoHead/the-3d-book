@@ -21,6 +21,7 @@ const pictures = [
 ];
 
 export const pageAtom = atom(0);
+
 export const pages = [
   {
     front: "book-cover",
@@ -44,19 +45,8 @@ export const UI = () => {
   const [page, setPage] = useAtom(pageAtom);
 
   useEffect(() => {
-    // const audio = new Audio("audios/page-flip-01a.mp3");
-    // audio.play();
-    
-    const handleKeyDown = (e) => {
-      if (e.key === 'ArrowLeft') {
-        setPage((prev) => Math.max(0, prev - 1));
-      } else if (e.key === 'ArrowRight') {
-        setPage((prev) => Math.min(pages.length, prev + 1));
-      }
-    };
-    
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    const audio = new Audio("/audios/page-flip-01a.mp3");
+    audio.play();
   }, [page]);
 
   return (
@@ -64,29 +54,86 @@ export const UI = () => {
       <main className=" pointer-events-none select-none z-10 fixed  inset-0  flex justify-between flex-col">
         <a
           className="pointer-events-auto mt-8 ml-8"
-          href="https://www.wawasensei.dev/"
+          href="https://www.youtube.com/channel/UCNqFJ7TH8fHvRSbUya6P0qw"
         >
-          <video
-            src="videos/Optopia Eye.mp4" 
-            autoPlay 
-            loop 
-            muted 
-            playsInline 
-            style={{width: '120px', height: '120px', objectFit: 'cover', position: 'fixed', bottom: '20px', right: '20px', borderRadius: '50%', boxShadow: '0 4px 12px rgba(0,0,0,0.3)'}} 
-          />
+          <img className="w-20" src="/images/logo.png" />
         </a>
+        <div className="w-full overflow-auto pointer-events-auto flex justify-center">
+          <div className="overflow-auto flex items-center gap-4 max-w-full p-10">
+            {[...pages].map((_, index) => (
+              <button
+                key={index}
+                className={`border-transparent hover:border-white transition-all duration-300  px-4 py-3 rounded-full  text-lg uppercase shrink-0 border ${
+                  index === page
+                    ? "bg-white/90 text-black"
+                    : "bg-black/30 text-white"
+                }`}
+                onClick={() => setPage(index)}
+              >
+                {index === 0 ? "Cover" : `Page ${index}`}
+              </button>
+            ))}
+            <button
+              className={`border-transparent hover:border-white transition-all duration-300  px-4 py-3 rounded-full  text-lg uppercase shrink-0 border ${
+                page === pages.length
+                  ? "bg-white/90 text-black"
+                  : "bg-black/30 text-white"
+              }`}
+              onClick={() => setPage(pages.length)}
+            >
+              Back Cover
+            </button>
+          </div>
+        </div>
       </main>
-      <div className="fixed inset-0 flex items-center justify-between pointer-events-none" style={{padding: '40px'}}>
-        <button className="pointer-events-auto bg-white/10 hover:bg-white/20 text-white rounded-full w-16 h-16 flex items-center justify-center backdrop-blur-sm transition-all" onClick={() => setPage(Math.max(0, page - 1))} disabled={page === 0} style={{opacity: page === 0 ? 0.3 : 1, cursor: page === 0 ? 'default' : 'pointer'}}>
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" style={{width: '32px', height: '32px'}}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-          </svg>
-        </button>
-        <button className="pointer-events-auto bg-white/10 hover:bg-white/20 text-white rounded-full w-16 h-16 flex items-center justify-center backdrop-blur-sm transition-all" onClick={() => setPage(Math.min(pages.length, page + 1))} disabled={page === pages.length} style={{opacity: page === pages.length ? 0.3 : 1, cursor: page === pages.length ? 'default' : 'pointer'}}>
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" style={{width: '32px', height: '32px'}}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-          </svg>
-        </button>
+
+      <div className="fixed inset-0 flex items-center -rotate-2 select-none">
+        <div className="relative">
+          <div className="bg-white/0  animate-horizontal-scroll flex items-center gap-8 w-max px-8">
+            <h1 className="shrink-0 text-white text-10xl font-black ">
+              Wawa Sensei
+            </h1>
+            <h2 className="shrink-0 text-white text-8xl italic font-light">
+              React Three Fiber
+            </h2>
+            <h2 className="shrink-0 text-white text-12xl font-bold">
+              Three.js
+            </h2>
+            <h2 className="shrink-0 text-transparent text-12xl font-bold italic outline-text">
+              RealTime 3D
+            </h2>
+            <h2 className="shrink-0 text-white text-9xl font-medium">
+              WebGL
+            </h2>
+            <h2 className="shrink-0 text-white text-9xl font-extralight italic">
+              Game Development
+            </h2>
+            <h2 className="shrink-0 text-white text-13xl font-bold">
+              r3f
+            </h2>
+            <h1 className="shrink-0 text-white text-10xl font-black ">
+              Wawa Sensei
+            </h1>
+            <h2 className="shrink-0 text-white text-8xl italic font-light">
+              React Three Fiber
+            </h2>
+            <h2 className="shrink-0 text-white text-12xl font-bold">
+              Three.js
+            </h2>
+            <h2 className="shrink-0 text-transparent text-12xl font-bold italic outline-text">
+              RealTime 3D
+            </h2>
+            <h2 className="shrink-0 text-white text-9xl font-medium">
+              WebGL
+            </h2>
+            <h2 className="shrink-0 text-white text-9xl font-extralight italic">
+              Game Development
+            </h2>
+            <h2 className="shrink-0 text-white text-13xl font-bold">
+              r3f
+            </h2>
+          </div>
+        </div>
       </div>
     </>
   );

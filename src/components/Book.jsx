@@ -73,17 +73,16 @@ const pageMaterials = [
 ];
 
 pages.forEach((page) => {
-  useTexture.preload(`/textures/${page.front}.jpg`);
-  useTexture.preload(`/textures/${page.back}.jpg`);
+  useTexture.preload(`textures/${page.front}.jpg`);
+  useTexture.preload(`textures/${page.back}.jpg`);
 });
 
 const Page = ({ number, front, back, page, opened, bookClosed, ...props }) => {
   const [picture, picture2] = useTexture([
-    `/textures/${front}.jpg`,
-    `/textures/${back}.jpg`,
+    `textures/${front}.jpg`,
+    `textures/${back}.jpg`,
   ]);
   picture.anisotropy = 16;
-  picture2.anisotropy = 16;
   const group = useRef();
   const skinnedMeshRef = useRef();
 
@@ -124,9 +123,10 @@ const Page = ({ number, front, back, page, opened, bookClosed, ...props }) => {
         Math.sin(i * Math.PI * (1 / bones.length)) * turningCurveStrength;
 
       let rotationAngle =
-        insideCurveIntensity * insideCurveStrength * targetRotation -
-        outsideCurveIntensity * outsideCurveStrength * targetRotation;
-      let foldRotationAngle = turningIntensity * targetRotation;
+        insideCurveStrength * insideCurveIntensity * targetRotation -
+        outsideCurveStrength * outsideCurveIntensity * targetRotation +
+        turningIntensity * targetRotation;
+      let foldRotationAngle = degToRad(Math.sign(targetRotation) * 2);
       if (bookClosed) {
         if (i === 0) {
           rotationAngle = targetRotation;
@@ -146,12 +146,12 @@ const Page = ({ number, front, back, page, opened, bookClosed, ...props }) => {
 
       const foldIntensity =
         i > 8
-          ? Math.sin(i * Math.PI * (1 / bones.length) - 0.5) * turningCurveStrength
+          ? Math.sin(i * Math.PI * (1 / bones.length) - 0.5) * easingFactor
           : 0;
       easing.dampAngle(
         target.rotation,
         "x",
-        foldRotationAngle,
+        foldRotationAngle * foldIntensity,
         easingFactorFold,
         delta
       );
@@ -162,8 +162,7 @@ const Page = ({ number, front, back, page, opened, bookClosed, ...props }) => {
     <group
       {...props}
       ref={group}
-      position-y={opened ? Math.PI / 2 : 0}
-      rotation-x={number % 2 === 0 ? Math.PI : 0}
+      rotation-y={opened ? -Math.PI / 2 : Math.PI / 2}
     >
       <primitive object={manualSkinnedMesh[0]} />
       <skinnedMesh
@@ -171,23 +170,16 @@ const Page = ({ number, front, back, page, opened, bookClosed, ...props }) => {
         geometry={pageGeometry}
         material={pageMaterials}
         skeleton={new THREE.Skeleton(manualSkinnedMesh)}
+        position-z={-number * PAGE_DEPTH + page * PAGE_DEPTH}
       >
+        <meshStandardMaterial color="#111" />
         <meshStandardMaterial
           color="white"
           map={picture}
           emissive={emissiveColor}
           emissiveIntensity={0}
         />
-
-        <meshStandardMaterial color={"#111"} />
-
-        <meshStandardMaterial
-          color="white"
-          map={picture2}
-          emissive={emissiveColor}
-          emissiveIntensity={0}
-        />
-
+        <meshStandardMaterial color="white" map={picture2} />
         <meshStandardMaterial color={"white"} />
       </skinnedMesh>
     </group>
@@ -206,7 +198,9 @@ export const Book = ({ ...props }) => {
   });
 
   const pagesRef = useRef(0);
+
   const [highlighted, setHighlighted] = useState(-1);
+
   return (
     <group {...props} rotation-y={-Math.PI / 2}>
       {[...pages].map((pageData, index) =>

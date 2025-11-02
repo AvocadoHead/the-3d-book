@@ -75,24 +75,6 @@ export const UI = () => {
             ))}
           </div>
         </div>
-        <div className="overflow-auto pointer-events-auto flex justify-center">
-          <div className="w-full max-w-4xl rounded-full bg-black/30 p-2 mt-4 mb-10">
-            <div className="overflow-hidden whitespace-nowrap">
-              <div className="animate-scrolling-banner inline-block">
-                <span className="mx-8 text-white text-xl">שאלה לי אליך</span>
-                <span className="mx-8 text-white text-xl">שאלה לי אליך</span>
-                <span className="mx-8 text-white text-xl">שאלה לי אליך</span>
-                <span className="mx-8 text-white text-xl">שאלה לי אליך</span>
-                <span className="mx-8 text-white text-xl">שאלה לי אליך</span>
-                <span className="mx-8 text-white text-xl">שאלה לי אליך</span>
-                <span className="mx-8 text-white text-xl">שאלה לי אליך</span>
-                <span className="mx-8 text-white text-xl">שאלה לי אליך</span>
-                <span className="mx-8 text-white text-xl">שאלה לי אליך</span>
-                <span className="mx-8 text-white text-xl">שאלה לי אליך</span>
-              </div>
-            </div>
-          </div>
-        </div>
       </main>
     </>
   );

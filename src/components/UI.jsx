@@ -21,6 +21,7 @@ const pictures = [
 ];
 
 export const pageAtom = atom(0);
+
 export const pages = [
   {
     front: "book-cover",
@@ -44,21 +45,19 @@ export const UI = () => {
   const [page, setPage] = useAtom(pageAtom);
 
   useEffect(() => {
-    // const audio = new Audio("/audios/page-flip-01a.mp3");
-    // audio.play();
+    const audio = new Audio("/audios/page-flip-01a.mp3");
+    audio.play();
   }, [page]);
 
   return (
     <>
-      <main className=" pointer-events-none select-none z-10 fixed  inset-0  flex justify-between flex-col">
-        <a
-          className="pointer-events-auto mt-8 ml-8"
-          href="https://www.youtube.com/channel/UCNqFJ7TH8fHvRSbUya6P0qw"
-        >
-          <img className="w-20" src="/images/logo.png" />
-        </a>
-        <div className="w-full overflow-auto pointer-events-auto flex justify-center">
-          <div className="overflow-auto flex items-center gap-4 max-w-full p-10">
+      <main className="pointer-events-none select-none z-10 fixed inset-0 flex justify-between flex-col">
+        <img
+          className="pointer-events-auto mt-8 ml-8 w-20"
+          src="/images/Optopia Eye.jpg"
+        />
+        <div className="w-full overflow-auto pointer-events-auto flex justify-center fixed bottom-0 pb-10">
+          <div className="overflow-auto flex items-center gap-4 max-w-full">
             {[...pages].map((_, index) => (
               <button
                 key={index}
@@ -84,12 +83,12 @@ export const UI = () => {
             </button>
           </div>
         </div>
-        <div className="overflow-hidden bg-black pointer-events-none print:hidden">
+        <div className="overflow-hidden bg-black pointer-events-none print:hidden fixed bottom-20 w-full">
           <div className="flex items-center gap-8 w-full justify-center">
             <h1 style={{transform: 'translateX(-100%)'}} className="text-white text-4xl font-black">שאלה לי אליך</h1>
           </div>
         </div>
-        <div className="overflow-hidden bg-black pointer-events-none print:hidden">
+        <div className="overflow-hidden bg-black pointer-events-none print:hidden fixed bottom-32 w-full">
           <div className="flex items-center gap-8 w-full justify-center">
             <h1 style={{transform: 'translateX(100%)'}} className="text-white text-4xl font-black">שאלה לי אליך</h1>
           </div>

@@ -38,6 +38,7 @@ const skinWeights = [];
 for (let i = 0; i < position.count; i++) {
   vertex.fromBufferAttribute(position, i);
   const x = vertex.x;
+
   const skinIndex = Math.max(0, Math.floor(x / SEGMENT_WIDTH));
   let skinWeight = (x % SEGMENT_WIDTH) / SEGMENT_WIDTH;
 
@@ -60,3 +61,189 @@ const emissiveColor = new THREE.Color("orange");
 const pageMaterials = [
   new THREE.MeshStandardMaterial({
     color: whiteColor,
+  }),
+  new THREE.MeshStandardMaterial({
+    color: "#111",
+  }),
+  new THREE.MeshStandardMaterial({
+    color: whiteColor,
+  }),
+  new THREE.MeshStandardMaterial({
+    color: whiteColor,
+  }),
+];
+
+pages.forEach((page) => {
+  useTexture.preload(`textures/${page.front}.jpg`);
+  useTexture.preload(`textures/${page.back}.jpg`);
+});
+
+useTexture.preload("textures/book-cover.jpg");
+useTexture.preload("textures/book-back.jpg");
+
+export const Book = ({ ...props }) => {
+  const [page] = useAtom(pageAtom);
+  const [delayedPage, setDelayedPage] = useState(page);
+
+  const lastPage = page;
+
+  useFrame(() => {
+    if (page === delayedPage) {
+      return;
+    }
+    if (Math.abs(page - delayedPage) > 1) {
+      // if the page difference is greater than 1, we need to update the page immediately
+      setDelayedPage(page);
+    } else {
+      const goingForward = page > delayedPage;
+      const goingBackward = page < delayedPage;
+      if (
+        (goingForward && lastPage > delayedPage) ||
+        (goingBackward && lastPage < delayedPage)
+      ) {
+        setDelayedPage(page);
+      }
+    }
+  });
+
+  return (
+    <group {...props}>
+      <group rotation-y={-Math.PI / 2}>
+        {[...pages].map((pageData, index) =>
+          index === 0 ? (
+            <Cover
+              key={index}
+              number={index}
+              texture={"textures/book-cover.jpg"}
+              {...pageData}
+            />
+          ) : (
+            <Page
+              key={index}
+              number={index}
+              front={`textures/${pageData.front}.jpg`}
+              back={`textures/${pageData.back}.jpg`}
+              page={delayedPage}
+              opened={delayedPage > index}
+              bookClosed={delayedPage === 0 || delayedPage === pages.length}
+              {...pageData}
+            />
+          )
+        )}
+        <Cover
+          number={pages.length}
+          texture={"textures/book-back.jpg"}
+          opened={delayedPage === pages.length}
+          bookClosed={delayedPage === 0 || delayedPage === pages.length}
+        />
+      </group>
+    </group>
+  );
+};
+
+const Page = ({
+  number,
+  front,
+  back,
+  page,
+  opened,
+  bookClosed,
+  ...props
+}) => {
+  const [picture, picture2] = useTexture([front, back]);
+  const group = useRef();
+  const skinnedMeshRef = useRef();
+
+  const manualSkinnedMesh = useMemo(() => {
+    const bones = [];
+    for (let i = 0; i <= PAGE_SEGMENTS; i++) {
+      let bone = new THREE.Bone();
+      bones.push(bone);
+      if (i === 0) {
+        bone.position.x = 0;
+      } else {
+        bone.position.x = SEGMENT_WIDTH;
+      }
+      if (i > 0) {
+        bones[i - 1].add(bone);
+      }
+    }
+    const skeleton = new THREE.Skeleton(bones);
+
+    const materials = [
+      ...pageMaterials,
+      new THREE.MeshStandardMaterial({
+        color: whiteColor,
+        map: picture,
+      }),
+      new THREE.MeshStandardMaterial({
+        color: whiteColor,
+        map: picture2,
+      }),
+    ];
+    const mesh = new THREE.SkinnedMesh(pageGeometry, materials);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    mesh.frustumCulled = false;
+    mesh.add(skeleton.bones[0]);
+    mesh.bind(skeleton);
+    return mesh;
+  }, [picture, picture2]);
+
+  useFrame((_, delta) => {
+    if (!skinnedMeshRef.current) {
+      return;
+    }
+
+    const targetRotation = opened ? -Math.PI / 2 : Math.PI / 2;
+    const insideCurveIntensity = opened ? -insideCurveStrength : 0;
+    const outsideCurveIntensity = opened ? 0 : outsideCurveStrength;
+    const turningIntensity =
+      Math.sin(skinnedMeshRef.current.rotation.y) * turningCurveStrength;
+    easing.dampAngle(
+      skinnedMeshRef.current.rotation,
+      "y",
+      targetRotation,
+      easingFactor,
+      delta
+    );
+
+    for (let i = 0; i < PAGE_SEGMENTS; i++) {
+      const scaledIndex = i / PAGE_SEGMENTS;
+      const boneRotation = scaledIndex * insideCurveIntensity;
+      const bone = manualSkinnedMesh.skeleton.bones[i];
+      easing.dampAngle(
+        bone.rotation,
+        "y",
+        boneRotation +
+          turningIntensity * Math.sin(scaledIndex * Math.PI) +
+          outsideCurveIntensity * Math.sin(scaledIndex * Math.PI),
+        bookClosed ? easingFactorFold / 2 : easingFactorFold,
+        delta
+      );
+    }
+  });
+
+  return (
+    <group ref={group} {...props}>
+      <primitive
+        object={manualSkinnedMesh}
+        ref={skinnedMeshRef}
+        position-z={-number * PAGE_DEPTH + page * PAGE_DEPTH}
+      />
+    </group>
+  );
+};
+
+const Cover = ({ texture, opened, bookClosed, ...props }) => {
+  const [picture] = useTexture([texture]);
+  picture.colorSpace = THREE.SRGBColorSpace;
+  return (
+    <group {...props}>
+      <mesh position-z={-0.01}>
+        <boxGeometry args={[PAGE_WIDTH, PAGE_HEIGHT, 0.002]} />
+        <meshBasicMaterial map={picture} />
+      </mesh>
+    </group>
+  );
+};

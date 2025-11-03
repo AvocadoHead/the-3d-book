@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from 'react';
-import { useFrame, useThree } from '@react-three/fiber';
+import { useThree } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import * as fabric from 'fabric';
@@ -7,12 +7,12 @@ import * as fabric from 'fabric';
 export const FloatingEditorPage = ({ onClose, onSave, position = [0, 0, 3] }) => {
   const meshRef = useRef();
   const [texture, setTexture] = useState(null);
-  const { camera, controls } = useThree();
+  const { controls } = useThree();
   const canvasRef = useRef(null);
   const fabricCanvasRef = useRef(null);
+  const [status, setStatus] = useState('');
 
   useEffect(() => {
-    // Disable orbit controls when editing
     if (controls) {
       controls.enabled = false;
     }
@@ -26,42 +26,23 @@ export const FloatingEditorPage = ({ onClose, onSave, position = [0, 0, 3] }) =>
   useEffect(() => {
     if (!canvasRef.current || fabricCanvasRef.current) return;
 
-    // Initialize Fabric canvas
     const fabricCanvas = new fabric.Canvas(canvasRef.current, {
-      width: 600,
-      height: 900,
+      width: 662,
+      height: 1024,
       backgroundColor: '#ffffff',
     });
 
-    // Add a white background rectangle to show page boundaries
-    const bgRect = new fabric.Rect({
-      left: 0,
-      top: 0,
-      width: 600,
-      height: 900,
-      fill: '#ffffff',
-      selectable: false,
-      evented: false,
-    });
-    fabricCanvas.add(bgRect);
-    fabricCanvas.sendToBack(bgRect);
-
     fabricCanvasRef.current = fabricCanvas;
 
-    // Update texture when canvas changes
-    const updateTexture = () => {
-      const dataURL = fabricCanvas.toDataURL();
-      const loader = new THREE.TextureLoader();
-      loader.load(dataURL, (tex) => {
-        setTexture(tex);
-      });
-    };
+    const tex = new THREE.CanvasTexture(canvasRef.current);
+    tex.needsUpdate = true;
+    setTexture(tex);
 
-    fabricCanvas.on('object:modified', updateTexture);
-    fabricCanvas.on('object:added', updateTexture);
-    fabricCanvas.on('object:removed', updateTexture);
-
-    updateTexture();
+    fabricCanvas.on('after:render', () => {
+      if (tex) {
+        tex.needsUpdate = true;
+      }
+    });
 
     return () => {
       fabricCanvas.dispose();
@@ -70,122 +51,239 @@ export const FloatingEditorPage = ({ onClose, onSave, position = [0, 0, 3] }) =>
 
   const addText = () => {
     if (!fabricCanvasRef.current) return;
-    const text = new fabric.Textbox('הוסף טקסט כאן', {
+    setStatus('Adding text...');
+    
+    const text = new fabric.IText('הקלד טקסט כאן', {
       left: 100,
       top: 100,
-      width: 200,
-      fontSize: 24,
-      fill: '#000000',
       fontFamily: 'Arial',
+      fontSize: 40,
+      fill: '#000000',
     });
+    
     fabricCanvasRef.current.add(text);
     fabricCanvasRef.current.setActiveObject(text);
+    fabricCanvasRef.current.renderAll();
+    setStatus('Text added! Click to edit.');
   };
 
   const addImage = () => {
-    if (!fabricCanvasRef.current) return;
+    const url = prompt('הדבק קישור לתמונה (Google Drive, Imgur, או כל URL ציבורי):');
+    if (!url) return;
+
+    setStatus('Loading image...');
+    let imageUrl = url;
+
+    // Convert Google Drive sharing link to direct link
+    if (url.includes('drive.google.com')) {
+      const fileId = url.match(/\/d\/([^\/]+)/);
+      if (fileId) {
+        imageUrl = `https://drive.google.com/uc?export=view&id=${fileId[1]}`;
+      }
+    }
+
+    // Create image element with CORS
+    const imgElement = document.createElement('img');
+    imgElement.crossOrigin = 'anonymous';
+    
+    imgElement.onload = () => {
+      try {
+        const fabricImg = new fabric.Image(imgElement, {
+          left: 100,
+          top: 100,
+          scaleX: 300 / imgElement.width,
+          scaleY: 300 / imgElement.width,
+        });
+        
+        fabricCanvasRef.current.add(fabricImg);
+        fabricCanvasRef.current.renderAll();
+        setStatus('Image added successfully!');
+        setTimeout(() => setStatus(''), 2000);
+      } catch (error) {
+        setStatus('Error: Could not add image. Try a different URL.');
+        console.error('Image add error:', error);
+      }
+    };
+
+    imgElement.onerror = () => {
+      setStatus('Error: Could not load image. Make sure the URL is public and allows embedding.');
+      setTimeout(() => setStatus(''), 3000);
+    };
+
+    imgElement.src = imageUrl;
+  };
+
+  const addVideo = () => {
+    const url = prompt('הדבק קישור לוידאו (Google Drive או YouTube):');
+    if (!url) return;
+
+    setStatus('Adding video placeholder...');
+
+    // For now, add a text placeholder for video
+    // Full video embedding in Fabric requires more complex setup
+    const videoPlaceholder = new fabric.Rect({
+      left: 100,
+      top: 100,
+      width: 300,
+      height: 200,
+      fill: '#000000',
+      stroke: '#ffffff',
+      strokeWidth: 3,
+    });
+
+    const videoText = new fabric.Text('VIDEO\n' + url.substring(0, 30) + '...', {
+      left: 120,
+      top: 150,
+      fontSize: 16,
+      fill: '#ffffff',
+      textAlign: 'center',
+    });
+
+    const group = new fabric.Group([videoPlaceholder, videoText], {
+      left: 100,
+      top: 100,
+    });
+
+    fabricCanvasRef.current.add(group);
+    fabricCanvasRef.current.renderAll();
+    setStatus('Video placeholder added. Note: Videos are saved as screenshots.');
+  };
+
+  const uploadImage = () => {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
+    
     input.onchange = (e) => {
       const file = e.target.files[0];
       if (!file) return;
+
+      setStatus('Loading file...');
       const reader = new FileReader();
+      
       reader.onload = (event) => {
-        fabric.FabricImage.fromURL(event.target.result).then((img) => {
-          img.scaleToWidth(200);
+        fabric.Image.fromURL(event.target.result, (img) => {
+          img.scaleToWidth(300);
           img.set({ left: 100, top: 100 });
           fabricCanvasRef.current.add(img);
-          fabricCanvasRef.current.setActiveObject(img);
+          fabricCanvasRef.current.renderAll();
+          setStatus('File uploaded successfully!');
+          setTimeout(() => setStatus(''), 2000);
         });
       };
+      
       reader.readAsDataURL(file);
     };
+    
     input.click();
   };
 
-  const handleSave = () => {
-    if (fabricCanvasRef.current && onSave) {
-      const dataURL = fabricCanvasRef.current.toDataURL();
-      onSave(dataURL);
-    }
-    handleClose();
+  const handleClear = () => {
+    if (!fabricCanvasRef.current) return;
+    if (!confirm('האם למחוק את כל התוכן?')) return;
+    
+    fabricCanvasRef.current.clear();
+    fabricCanvasRef.current.backgroundColor = '#ffffff';
+    fabricCanvasRef.current.renderAll();
+    setStatus('Cleared!');
+    setTimeout(() => setStatus(''), 1000);
   };
 
-  const handleClear = () => {
-    if (fabricCanvasRef.current) {
-      const objects = fabricCanvasRef.current.getObjects();
-      objects.forEach((obj) => {
-        if (obj.selectable !== false) {
-          fabricCanvasRef.current.remove(obj);
-        }
-      });
-      fabricCanvasRef.current.renderAll();
-    }
+  const handleSave = () => {
+    if (!canvasRef.current) return;
+    setStatus('Saving...');
+    
+    const dataURL = canvasRef.current.toDataURL('image/png', 1.0);
+    onSave(dataURL);
+    setStatus('Saved!');
   };
 
   const handleCancel = () => {
-    handleClose();
-  };
-
-  const handleClose = () => {
-    if (onClose) onClose();
+    if (fabricCanvasRef.current && fabricCanvasRef.current.getObjects().length > 0) {
+      if (!confirm('האם לבטל? כל השינויים יאבדו.')) return;
+    }
+    onClose();
   };
 
   return (
     <group position={position}>
-      {/* Editor Plane with visible canvas */}
-      <mesh ref={meshRef} position={[0, 0, 0]}>
-        <planeGeometry args={[3, 4.5]} />
-        <meshBasicMaterial
+      <mesh ref={meshRef}>
+        <planeGeometry args={[2.5, 3.8]} />
+        <meshPhysicalMaterial
           map={texture}
           transparent
           opacity={0.95}
-          side={THREE.DoubleSide}
+          roughness={0.1}
+          metalness={0}
+          clearcoat={0.5}
+          clearcoatRoughness={0.1}
         />
       </mesh>
 
-      {/* Canvas positioned on the 3D plane - now visible and interactive */}
-      <Html
-        position={[0, 0, 0.01]}
+      <Html 
+        position={[0, 0, 0.01]} 
+        center
         transform
-        occlude={false}
-        style={{
-          pointerEvents: 'auto',
-          width: '600px',
-          height: '900px',
-        }}
+        style={{ pointerEvents: 'auto' }}
       >
-        <canvas
-          ref={canvasRef}
-          style={{
-            border: '2px solid #ddd',
-            boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-            background: 'white',
-          }}
-        />
+        <div style={{ 
+          background: 'rgba(255,255,255,0.1)', 
+          padding: '20px',
+          borderRadius: '12px',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255,255,255,0.2)',
+        }}>
+          {status && (
+            <div style={{
+              background: 'rgba(0,0,0,0.8)',
+              color: 'white',
+              padding: '8px 16px',
+              borderRadius: '8px',
+              marginBottom: '10px',
+              textAlign: 'center',
+              fontSize: '14px',
+            }}>
+              {status}
+            </div>
+          )}
+          <canvas ref={canvasRef} style={{
+            border: '2px solid rgba(255,255,255,0.3)',
+            borderRadius: '8px',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+          }} />
+        </div>
       </Html>
 
-      {/* Toolbar */}
-      <Html position={[0, 1.7, 0.01]} center>
-        <div className="flex gap-2 bg-white/90 backdrop-blur-md rounded-full px-4 py-2 shadow-lg">
+      <Html position={[0, 2.2, 0.01]} center>
+        <div className="flex gap-2 bg-white/90 backdrop-blur-md rounded-full px-4 py-2 shadow-lg flex-wrap justify-center">
           <button
             onClick={addText}
-            className="px-4 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition text-sm font-medium"
+            className="px-3 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition text-sm font-medium"
           >
             📝 טקסט
           </button>
           <button
             onClick={addImage}
-            className="px-4 py-2 bg-purple-500 text-white rounded-full hover:bg-purple-600 transition text-sm font-medium"
+            className="px-3 py-2 bg-purple-500 text-white rounded-full hover:bg-purple-600 transition text-sm font-medium"
           >
             🖼️ תמונה
+          </button>
+          <button
+            onClick={uploadImage}
+            className="px-3 py-2 bg-green-500 text-white rounded-full hover:bg-green-600 transition text-sm font-medium"
+          >
+            📁 העלה
+          </button>
+          <button
+            onClick={addVideo}
+            className="px-3 py-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition text-sm font-medium"
+          >
+            🎬 וידאו
           </button>
         </div>
       </Html>
 
-      {/* Action Buttons */}
-      <Html position={[0, -1.7, 0.01]} center>
+      <Html position={[0, -2.2, 0.01]} center>
         <div className="flex gap-3">
           <button
             onClick={handleClear}

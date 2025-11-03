@@ -36,7 +36,6 @@ const pageGeometry = new BoxGeometry(
   PAGE_HEIGHT,
   PAGE_DEPTH,
   PAGE_SEGMENTS,
-  1,
   1
 );
 
@@ -88,88 +87,33 @@ const pageMaterials = [
 pages.forEach((page) => {
   useTexture.preload(`textures/${page.front}.jpg`);
   useTexture.preload(`textures/${page.back}.jpg`);
-  useTexture.preload(
-    `textures/${page.front}-roughness.jpg`
-  );
-  useTexture.preload(
-    `textures/${page.back}-roughness.jpg`
-  );
 });
 
 const Page = ({ number, front, back, page, opened, bookClosed, ...props }) => {
-  const [picture, picture2, pictureRoughness, picture2Roughness] = useTexture(
-    [
-      `textures/${front}.jpg`,
-      `textures/${back}.jpg`,
-      `textures/${front}-roughness.jpg`,
-      `textures/${back}-roughness.jpg`,
-    ]
-  );
+  const [picture, picture2] = useTexture([
+    `textures/${front}.jpg`,
+    `textures/${back}.jpg`,
+  ]);
   picture.colorSpace = picture2.colorSpace = SRGBColorSpace;
   const group = useRef();
+  const skinnedMeshRef = useRef();
+
   const turnedAt = useRef(0);
   const lastOpened = useRef(opened);
 
-  const skinnedMeshRef = useRef();
-
-  const manualSkinnedMesh = useMemo(() => {
-    const bones = [];
-    for (let i = 0; i <= PAGE_SEGMENTS; i++) {
-      let bone = new Bone();
-      bones.push(bone);
-      if (i === 0) {
-        bone.position.x = 0;
-      } else {
-        bone.position.x = SEGMENT_WIDTH;
-      }
-      if (i > 0) {
-        bones[i - 1].add(bone);
-      }
-    }
-    const skeleton = new Skeleton(bones);
-
-    const materials = [
-      ...pageMaterials,
-      new MeshStandardMaterial({
-        color: whiteColor,
-        map: picture,
-        roughnessMap: pictureRoughness,
-        roughness: 0.1,
-      }),
-      new MeshStandardMaterial({
-        color: whiteColor,
-        map: picture2,
-        roughnessMap: picture2Roughness,
-        roughness: 0.1,
-      }),
-    ];
-
-    const mesh = new SkinnedMesh(pageGeometry, materials);
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-    mesh.frustumCulled = false;
-    mesh.add(skeleton.bones[0]);
-    mesh.bind(skeleton);
-    return mesh;
-  }, [picture, picture2, pictureRoughness, picture2Roughness]);
+  const [highlighted, setHighlighted] = useState(false);
+  useCursor(highlighted);
 
   useFrame((_, delta) => {
     if (!skinnedMeshRef.current) {
       return;
     }
 
-    const emissiveIntensity = highlighted ? 0.22 : 0;
-    skinnedMeshRef.current.material[4].emissiveIntensity =
-      skinnedMeshRef.current.material[5].emissiveIntensity = MathUtils.lerp(
-        skinnedMeshRef.current.material[4].emissiveIntensity,
-        emissiveIntensity,
-        0.1
-      );
-
     if (lastOpened.current !== opened) {
       turnedAt.current = +new Date();
       lastOpened.current = opened;
     }
+
     let turningTime = Math.min(400, new Date() - turnedAt.current) / 400;
     turningTime = Math.sin(turningTime * Math.PI);
 
@@ -222,18 +166,66 @@ const Page = ({ number, front, back, page, opened, bookClosed, ...props }) => {
     }
   });
 
-  const [_, setPage] = useAtom(pageAtom);
-  const [highlighted, setHighlighted] = useState(false);
-  useCursor(highlighted);
-
-  useEffect(() => {
-    if (skinnedMeshRef.current) {
-      skinnedMeshRef.current.material[4].color =
-        skinnedMeshRef.current.material[5].color = whiteColor;
-      skinnedMeshRef.current.material[4].emissive =
-        skinnedMeshRef.current.material[5].emissive = emissiveColor;
+  const manualSkinnedMesh = useMemo(() => {
+    const bones = [];
+    for (let i = 0; i <= PAGE_SEGMENTS; i++) {
+      let bone = new Bone();
+      bones.push(bone);
+      if (i === 0) {
+        bone.position.x = 0;
+      } else {
+        bone.position.x = SEGMENT_WIDTH;
+      }
+      if (i > 0) {
+        bones[i - 1].add(bone);
+      }
     }
-  }, []);
+    const skeleton = new Skeleton(bones);
+
+    const materials = [
+      ...pageMaterials,
+      new MeshStandardMaterial({
+        color: whiteColor,
+        map: picture,
+        ...(number === 0
+          ? {
+              emissive: emissiveColor,
+              emissiveIntensity: 0,
+            }
+          : {}),
+      }),
+      new MeshStandardMaterial({
+        color: whiteColor,
+        map: picture2,
+      }),
+    ];
+    const mesh = new SkinnedMesh(pageGeometry, materials);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    mesh.frustumCulled = false;
+    mesh.add(bones[0]);
+    mesh.bind(skeleton);
+    return mesh;
+  }, [picture, picture2]);
+
+  useFrame(() => {
+    if (!skinnedMeshRef.current) return;
+
+    const emissiveMaterial =
+      skinnedMeshRef.current.material[skinnedMeshRef.current.material.length - 2];
+    if (emissiveMaterial) {
+      if (number === 0) {
+        const targetIntensity = highlighted ? 0.22 : 0;
+        emissiveMaterial.emissiveIntensity = MathUtils.lerp(
+          emissiveMaterial.emissiveIntensity,
+          targetIntensity,
+          0.1
+        );
+      } else {
+        emissiveMaterial.emissiveIntensity = 0;
+      }
+    }
+  });
 
   return (
     <group
@@ -249,8 +241,16 @@ const Page = ({ number, front, back, page, opened, bookClosed, ...props }) => {
       }}
       onClick={(e) => {
         e.stopPropagation();
-        setPage(opened ? number : number + 1);
-        setHighlighted(false);
+        if (page === number) {
+          return;
+        }
+        if (number === 0) {
+          // Go to cover
+          window.location.hash = "#0";
+        } else if (page < number) {
+          // Clicked on a page ahead, go to next page
+          window.location.hash = `#${page + 1}`;
+        }
       }}
     >
       <primitive
@@ -278,7 +278,6 @@ const Book = ({ ...props }) => {
         setDelayedPage((p) => p - 1);
       }, changeDelay);
     }
-
     return () => {
       clearTimeout(timeout);
     };

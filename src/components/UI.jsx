@@ -1,5 +1,6 @@
 import { atom, useAtom } from "jotai";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { PageEditor } from './PageEditor';
 
 const pictures = [
   "DSC00680",
@@ -21,12 +22,14 @@ const pictures = [
 ];
 
 export const pageAtom = atom(0);
+
 export const pages = [
   {
     front: "book-cover",
     back: pictures[0],
   },
 ];
+
 for (let i = 1; i < pictures.length - 1; i += 2) {
   pages.push({
     front: pictures[i % pictures.length],
@@ -41,30 +44,29 @@ pages.push({
 
 export const UI = () => {
   const [page, setPage] = useAtom(pageAtom);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [customPages, setCustomPages] = useState([]);
 
   useEffect(() => {
     const audio = new Audio("/audios/page-flip-01a.mp3");
     audio.play();
   }, [page]);
 
+  const handlePageCreated = ({ name, dataURL }) => {
+    setCustomPages([...customPages, { name, dataURL }]);
+    setEditorOpen(false);
+    alert('עמוד נוסף בהצלחה! (בזיכרון הסשן)');
+  };
+
   return (
     <>
-      <div className="pointer-events-none select-none z-10 fixed inset-0 flex justify-between flex-col">
-        <div className="pointer-events-auto mt-10 ml-10">
-          <video 
-            className="w-40 h-40 rounded-full object-cover"
-            src="/videos/Optopia Eye.mp4"
-            loop
-            muted
-            playsInline
-          />
-        </div>
+      <div className="pointer-events-none select-none z-10 fixed  inset-0  flex justify-between flex-col">
         <div className="w-full overflow-auto pointer-events-auto flex justify-center">
           <div className="overflow-auto flex items-center gap-4 max-w-full p-10">
             {[...pages].map((_, index) => (
               <button
                 key={index}
-                className={`border-transparent hover:border-white transition-all duration-300 px-4 py-3 rounded-full text-lg uppercase shrink-0 border ${
+                className={`border-transparent hover:border-white transition-all duration-300  px-4 py-3 rounded-full  text-lg uppercase shrink-0 border ${
                   index === page
                     ? "bg-white/90 text-black"
                     : "bg-black/30 text-white"
@@ -75,7 +77,7 @@ export const UI = () => {
               </button>
             ))}
             <button
-              className={`border-transparent hover:border-white transition-all duration-300 px-4 py-3 rounded-full text-lg uppercase shrink-0 border ${
+              className={`border-transparent hover:border-white transition-all duration-300  px-4 py-3 rounded-full  text-lg uppercase shrink-0 border ${
                 page === pages.length
                   ? "bg-white/90 text-black"
                   : "bg-black/30 text-white"
@@ -86,6 +88,13 @@ export const UI = () => {
             </button>
           </div>
         </div>
+        <button
+          onClick={() => setEditorOpen(true)}
+          className="pointer-events-auto fixed bottom-10 right-10 w-16 h-16 bg-blue-500 text-white rounded-full shadow-lg hover:bg-blue-600 transition-all hover:scale-110 flex items-center justify-center text-2xl"
+          title="ערוך עמוד חדש"
+        >
+          ✏️
+        </button>
       </div>
       <div className="fixed inset-0 flex items-center -rotate-2 select-none">
         <div className="relative">
@@ -143,6 +152,12 @@ export const UI = () => {
           </div>
         </div>
       </div>
+      {editorOpen && (
+        <PageEditor 
+          onClose={() => setEditorOpen(false)}
+          onPageCreated={handlePageCreated}
+        />
+      )}
     </>
   );
 };

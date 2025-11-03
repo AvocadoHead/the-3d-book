@@ -1,5 +1,6 @@
 import { Environment, Float, OrbitControls } from "@react-three/drei";
 import { Book } from "./Book";
+import * as THREE from "three";
 
 export const Experience = () => {
   return (
@@ -14,18 +15,11 @@ export const Experience = () => {
       </Float>
       <OrbitControls />
       <Environment preset="studio" />
-      <DirectionalLight
+      <primitive
+        object={new THREE.DirectionalLight(0xffffff, 2.5)}
         position={[2, 5, 2]}
-        intensity={2.5}
         castShadow
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
-        shadow-bias={-0.0001}
       />
-      <mesh position-y={-1.5} receiveShadow rotation-x={-Math.PI / 2}>
-        <planeGeometry args={[100, 100]} />
-        <shadowMaterial transparent opacity={0.2} />
-      </mesh>
     </>
   );
 };

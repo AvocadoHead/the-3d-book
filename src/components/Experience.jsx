@@ -4,12 +4,15 @@ import { Environment, Float, OrbitControls } from "@react-three/drei";
 import { EffectComposer, DepthOfField } from '@react-three/postprocessing';
 import { Book } from "./Book";
 import { FloatingEditorPage } from './FloatingEditorPage';
+
 export const Experience = () => {
   const [isEditing, setIsEditing] = useAtom(editModeAtom);
+
   return (
     <>
       <group opacity={isEditing ? 0.3 : 1}>
         <Float
+          position={[0.64, 0, 0]}
           rotation-x={-Math.PI / 4}
           floatIntensity={1}
           speed={2}

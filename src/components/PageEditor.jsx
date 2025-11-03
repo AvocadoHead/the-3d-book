@@ -1,0 +1,229 @@
+import { useEffect, useRef, useState } from 'react';
+import { fabric } from 'fabric';
+
+export const PageEditor = ({ onClose, onPageCreated }) => {
+  const canvasRef = useRef(null);
+  const fabricCanvasRef = useRef(null);
+  const [pageType, setPageType] = useState('page'); // 'page' or 'cover'
+
+  useEffect(() => {
+    // Initialize Fabric canvas
+    const width = pageType === 'cover' ? 1920 : 1325;
+    const height = pageType === 'cover' ? 2560 : 2048;
+
+    if (fabricCanvasRef.current) {
+      fabricCanvasRef.current.dispose();
+    }
+
+    const canvas = new fabric.Canvas(canvasRef.current, {
+      width: width,
+      height: height,
+      backgroundColor: '#ffffff',
+    });
+
+    fabricCanvasRef.current = canvas;
+
+    return () => {
+      canvas.dispose();
+    };
+  }, [pageType]);
+
+  const addText = () => {
+    const text = new fabric.IText('הקלד טקסט כאן', {
+      left: 100,
+      top: 100,
+      fontFamily: 'Arial',
+      fontSize: 60,
+      fill: '#000000',
+    });
+    fabricCanvasRef.current.add(text);
+    fabricCanvasRef.current.setActiveObject(text);
+  };
+
+  const addImageFromUrl = () => {
+    const url = prompt('הדבק קישור לתמונה (Google Drive, או כל URL):');
+    if (!url) return;
+
+    // Convert Google Drive link if needed
+    let imageUrl = url;
+    if (url.includes('drive.google.com')) {
+      const fileId = url.match(/\/d\/([^\/]+)/);
+      if (fileId) {
+        imageUrl = `https://drive.google.com/uc?export=view&id=${fileId[1]}`;
+      }
+    }
+
+    fabric.Image.fromURL(imageUrl, (img) => {
+      img.scaleToWidth(400);
+      img.set({ left: 100, top: 100 });
+      fabricCanvasRef.current.add(img);
+    }, { crossOrigin: 'anonymous' });
+  };
+
+  const uploadImage = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        fabric.Image.fromURL(event.target.result, (img) => {
+          img.scaleToWidth(400);
+          img.set({ left: 100, top: 100 });
+          fabricCanvasRef.current.add(img);
+        });
+      };
+      reader.readAsDataURL(file);
+    };
+    input.click();
+  };
+
+  const deleteSelected = () => {
+    const activeObjects = fabricCanvasRef.current.getActiveObjects();
+    if (activeObjects.length) {
+      activeObjects.forEach(obj => fabricCanvasRef.current.remove(obj));
+      fabricCanvasRef.current.discardActiveObject();
+      fabricCanvasRef.current.renderAll();
+    }
+  };
+
+  const exportPage = () => {
+    const width = pageType === 'cover' ? 1920 : 1325;
+    const height = pageType === 'cover' ? 2560 : 2048;
+
+    const dataURL = fabricCanvasRef.current.toDataURL({
+      format: 'png',
+      quality: 1,
+      multiplier: 1,
+      width: width,
+      height: height,
+    });
+
+    const pageName = `custom-page-${Date.now()}`;
+    onPageCreated({ name: pageName, dataURL, type: pageType });
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex">
+      {/* Overlay */}
+      <div 
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        onClick={onClose}
+      />
+      
+      {/* Editor Panel */}
+      <div className="relative ml-auto w-full max-w-6xl bg-white shadow-2xl overflow-hidden flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">עורך עמודים</h2>
+            <p className="text-sm text-gray-500 mt-1">צור עמוד חדש לספר</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Toolbar */}
+        <div className="flex items-center gap-2 p-4 border-b border-gray-200 bg-gray-50 flex-wrap">
+          <div className="flex gap-2">
+            <button
+              onClick={() => setPageType('page')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                pageType === 'page' 
+                  ? 'bg-blue-500 text-white' 
+                  : 'bg-white text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              עמוד פנימי (1325×2048)
+            </button>
+            <button
+              onClick={() => setPageType('cover')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                pageType === 'cover' 
+                  ? 'bg-blue-500 text-white' 
+                  : 'bg-white text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              כריכה (1920×2560)
+            </button>
+          </div>
+
+          <div className="h-8 w-px bg-gray-300" />
+
+          <button
+            onClick={addText}
+            className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg hover:bg-gray-100 transition-colors"
+          >
+            <span className="text-xl">T</span>
+            <span>הוסף טקסט</span>
+          </button>
+
+          <button
+            onClick={uploadImage}
+            className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg hover:bg-gray-100 transition-colors"
+          >
+            <span className="text-xl">🖼️</span>
+            <span>העלה תמונה</span>
+          </button>
+
+          <button
+            onClick={addImageFromUrl}
+            className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg hover:bg-gray-100 transition-colors"
+          >
+            <span className="text-xl">🔗</span>
+            <span>תמונה מקישור</span>
+          </button>
+
+          <div className="h-8 w-px bg-gray-300" />
+
+          <button
+            onClick={deleteSelected}
+            className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
+          >
+            <span className="text-xl">🗑️</span>
+            <span>מחק</span>
+          </button>
+        </div>
+
+        {/* Canvas Container */}
+        <div className="flex-1 overflow-auto p-8 bg-gray-100">
+          <div className="flex justify-center">
+            <div className="bg-white shadow-lg" style={{ display: 'inline-block' }}>
+              <canvas ref={canvasRef} />
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="p-6 border-t border-gray-200 bg-white flex justify-between items-center">
+          <div className="text-sm text-gray-600">
+            <p>💡 טיפ: לחץ על אלמנט כדי לערוך, גרור כדי להזיז</p>
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={onClose}
+              className="px-6 py-3 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors"
+            >
+              ביטול
+            </button>
+            <button
+              onClick={exportPage}
+              className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium"
+            >
+              צור עמוד והוסף לספר
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};

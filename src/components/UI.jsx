@@ -46,7 +46,7 @@ export const UI = () => {
 
   useEffect(() => {
     const audio = new Audio("/audios/page-flip-01a.mp3");
-    audio.play();
+    // audio.play(); // Commented out to fix browser autoplay error
   }, [page]);
 
   return (
@@ -67,6 +67,16 @@ export const UI = () => {
                 {index === 0 ? "Cover" : `Page ${index}`}
               </button>
             ))}
+            <button
+              className={`border-transparent hover:border-white transition-all duration-300  px-4 py-3 rounded-full  text-lg uppercase shrink-0 border ${
+                page === pages.length
+                  ? "bg-white/90 text-black"
+                  : "bg-black/30 text-white"
+              }`}
+              onClick={() => setPage(pages.length)}
+            >
+              Back Cover
+            </button>
           </div>
         </div>
       </main>

@@ -37,9 +37,14 @@ for (let i = 1; i < pictures.length - 1; i += 2) {
   });
 }
 
+pages.push({
+  front: pictures[pictures.length - 1],
+  back: "שאלה לי אליך back cover",
+});
+
 export const UI = () => {
   const [page, setPage] = useAtom(pageAtom);
-  const [editMode, setEditMode] = useAtom(editModeAtom);
+  const [editorOpen, setEditorOpen] = useAtom(editModeAtom);
 
   useEffect(() => {
     const audio = new Audio("/audios/page-flip-01a.mp3");
@@ -48,74 +53,79 @@ export const UI = () => {
 
   return (
     <>
-      <main className=" pointer-events-none select-none z-10 fixed  inset-0  flex justify-between flex-col">
-        <div className="w-full overflow-auto pointer-events-auto flex justify-center">
-          <div className="overflow-hidden flex items-center justify-center relative h-20">
-            <div
-              className="flex items-center justify-center gap-8 animate-horizontal-scroll text-white/30 hover:pause uppercase font-black"
-              style={{
-                fontSize: "80px",
-              }}
-            >
-              <p>ספר שאלות</p>
-              <p>Questions</p>
-              <p>לי אליך</p>
-              <p>Love</p>
-              <p>זיכרונות</p>
-              <p>Stories</p>
-              <p>משפחה</p>
-              <p>Heart</p>
-              <p>ספר שאלות</p>
-              <p>Questions</p>
-              <p>לי אליך</p>
-              <p>Love</p>
-              <p>זיכרונות</p>
-              <p>Stories</p>
-              <p>משפחה</p>
-              <p>Heart</p>
-            </div>
-          </div>
+      <div className="pointer-events-none select-none z-10 fixed inset-0 flex justify-between flex-col">
+        <div className="pointer-events-auto mt-10 ml-10">
+          <video 
+            className="w-40 h-40 rounded-full object-cover"
+            src="/videos/Optopia Eye.mp4"
+            loop
+            muted
+            playsInline
+          />
         </div>
         <div className="w-full overflow-auto pointer-events-auto flex justify-center">
-          <div className="overflow-hidden flex items-center justify-center relative h-20">
-            <div
-              className="flex items-center justify-center gap-8 animate-horizontal-scroll-2 text-white/30 hover:pause uppercase font-black"
-              style={{
-                fontSize: "80px",
-              }}
+          <div className="overflow-auto flex items-center gap-4 max-w-full p-10">
+            {[...pages].map((_, index) => (
+              <button
+                key={index}
+                className={`border-transparent hover:border-white transition-all duration-300 px-4 py-3 rounded-full text-lg uppercase shrink-0 border ${
+                  index === page
+                    ? "bg-white/90 text-black"
+                    : "bg-black/30 text-white"
+                }`}
+                onClick={() => setPage(index)}
+              >
+                {index === 0 ? "Cover" : `Page ${index}`}
+              </button>
+            ))}
+            <button
+              className={`border-transparent hover:border-white transition-all duration-300 px-4 py-3 rounded-full text-lg uppercase shrink-0 border ${
+                page === pages.length
+                  ? "bg-white/90 text-black"
+                  : "bg-black/30 text-white"
+              }`}
+              onClick={() => setPage(pages.length)}
             >
-              <p>ספר שאלות</p>
-              <p>Questions</p>
-              <p>לי אליך</p>
-              <p>Love</p>
-              <p>זיכרונות</p>
-              <p>Stories</p>
-              <p>משפחה</p>
-              <p>Heart</p>
-              <p>ספר שאלות</p>
-              <p>Questions</p>
-              <p>לי אליך</p>
-              <p>Love</p>
-              <p>זיכרונות</p>
-              <p>Stories</p>
-              <p>משפחה</p>
-              <p>Heart</p>
-            </div>
+              Back Cover
+            </button>
           </div>
         </div>
-      </main>
-      <div className="fixed inset-0 flex items-center -rotate-2 select-none">
-        <div className="border-transparent border-8 bg-white/0  flex-grow overflow-auto pointer-events-auto flex justify-center">
-          <div className="overflow-hidden flex items-center justify-center relative">
-            <div
-              className="flex items-center justify-center gap-8 animate-horizontal-scroll text-white/30 hover:pause uppercase font-black"
-              style={{
-                fontSize: "80px",
-              }}
-            ></div>
+      </div>
+      
+      {/* Edit Button - Fixed bottom right */}
+      <button
+        onClick={() => setEditorOpen(!editorOpen)}
+        className="pointer-events-auto fixed bottom-10 right-10 w-16 h-16 bg-blue-500 text-white rounded-full shadow-lg hover:bg-blue-600 transition-all hover:scale-110 flex items-center justify-center text-2xl z-50"
+        title="ערוך עמוד חדש"
+      >
+        ✏️
+      </button>
+
+      {/* Scrolling text background */}
+      <div className="fixed inset-0 flex items-center -rotate-2 select-none pointer-events-none">
+        <div className="relative w-full overflow-hidden">
+          <div className="flex items-center gap-8 animate-horizontal-scroll">
+            <h2 className="shrink-0 text-white/20 text-10xl font-black">ספר שאלות</h2>
+            <h2 className="shrink-0 text-white/20 text-8xl italic font-light">Questions</h2>
+            <h2 className="shrink-0 text-white/20 text-12xl font-bold">לי אליך</h2>
+            <h2 className="shrink-0 text-white/20 text-12xl font-bold italic">Love</h2>
+            <h2 className="shrink-0 text-white/20 text-9xl font-medium">זיכרונות</h2>
+            <h2 className="shrink-0 text-white/20 text-9xl font-extralight italic">Stories</h2>
+            <h2 className="shrink-0 text-white/20 text-13xl font-bold">משפחה</h2>
+            <h2 className="shrink-0 text-white/20 text-13xl font-bold italic">Heart</h2>
+          </div>
+          <div className="absolute top-0 left-0 flex items-center gap-8 animate-horizontal-scroll-2">
+            <h2 className="shrink-0 text-white/20 text-10xl font-black">ספר שאלות</h2>
+            <h2 className="shrink-0 text-white/20 text-8xl italic font-light">Questions</h2>
+            <h2 className="shrink-0 text-white/20 text-12xl font-bold">לי אליך</h2>
+            <h2 className="shrink-0 text-white/20 text-12xl font-bold italic">Love</h2>
+            <h2 className="shrink-0 text-white/20 text-9xl font-medium">זיכרונות</h2>
+            <h2 className="shrink-0 text-white/20 text-9xl font-extralight italic">Stories</h2>
+            <h2 className="shrink-0 text-white/20 text-13xl font-bold">משפחה</h2>
+            <h2 className="shrink-0 text-white/20 text-13xl font-bold italic">Heart</h2>
           </div>
         </div>
       </div>
     </>
   );
-};}
+};

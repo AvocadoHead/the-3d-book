@@ -16,7 +16,6 @@ export const FloatingEditorPage = ({ onClose, onSave, position = [0, 0, 3] }) =>
     if (controls) {
       controls.enabled = false;
     }
-
     return () => {
       if (controls) {
         controls.enabled = true;
@@ -34,19 +33,35 @@ export const FloatingEditorPage = ({ onClose, onSave, position = [0, 0, 3] }) =>
       backgroundColor: '#ffffff',
     });
 
+    // Add a white background rectangle to show page boundaries
+    const bgRect = new fabric.Rect({
+      left: 0,
+      top: 0,
+      width: 600,
+      height: 900,
+      fill: '#ffffff',
+      selectable: false,
+      evented: false,
+    });
+    fabricCanvas.add(bgRect);
+    fabricCanvas.sendToBack(bgRect);
+
     fabricCanvasRef.current = fabricCanvas;
 
-    // Create Three.js texture from canvas
-    const tex = new THREE.CanvasTexture(canvasRef.current);
-    tex.needsUpdate = true;
-    setTexture(tex);
+    // Update texture when canvas changes
+    const updateTexture = () => {
+      const dataURL = fabricCanvas.toDataURL();
+      const loader = new THREE.TextureLoader();
+      loader.load(dataURL, (tex) => {
+        setTexture(tex);
+      });
+    };
 
-    // Update texture on canvas change
-    fabricCanvas.on('after:render', () => {
-      if (tex) {
-        tex.needsUpdate = true;
-      }
-    });
+    fabricCanvas.on('object:modified', updateTexture);
+    fabricCanvas.on('object:added', updateTexture);
+    fabricCanvas.on('object:removed', updateTexture);
+
+    updateTexture();
 
     return () => {
       fabricCanvas.dispose();
@@ -55,72 +70,100 @@ export const FloatingEditorPage = ({ onClose, onSave, position = [0, 0, 3] }) =>
 
   const addText = () => {
     if (!fabricCanvasRef.current) return;
-    const text = new fabric.IText('הקלד טקסט כאן', {
+    const text = new fabric.Textbox('הוסף טקסט כאן', {
       left: 100,
       top: 100,
-      fontFamily: 'Arial',
-      fontSize: 40,
+      width: 200,
+      fontSize: 24,
       fill: '#000000',
+      fontFamily: 'Arial',
     });
     fabricCanvasRef.current.add(text);
     fabricCanvasRef.current.setActiveObject(text);
   };
 
   const addImage = () => {
-    const url = prompt('הדבק קישור לתמונה (Google Drive או URL):');
-    if (!url) return;
-
-    let imageUrl = url;
-    if (url.includes('drive.google.com')) {
-      const fileId = url.match(/\/d\/([^\/]+)/);
-      if (fileId) {
-        imageUrl = `https://drive.google.com/uc?export=view&id=${fileId[1]}`;
-      }
-    }
-
-    fabric.Image.fromURL(imageUrl, (img) => {
-      img.scaleToWidth(300);
-      img.set({ left: 100, top: 100 });
-      fabricCanvasRef.current.add(img);
-    }, { crossOrigin: 'anonymous' });
-  };
-
-  const handleClear = () => {
     if (!fabricCanvasRef.current) return;
-    fabricCanvasRef.current.clear();
-    fabricCanvasRef.current.backgroundColor = '#ffffff';
-    fabricCanvasRef.current.renderAll();
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        fabric.FabricImage.fromURL(event.target.result).then((img) => {
+          img.scaleToWidth(200);
+          img.set({ left: 100, top: 100 });
+          fabricCanvasRef.current.add(img);
+          fabricCanvasRef.current.setActiveObject(img);
+        });
+      };
+      reader.readAsDataURL(file);
+    };
+    input.click();
   };
 
   const handleSave = () => {
-    if (!canvasRef.current) return;
-    const dataURL = canvasRef.current.toDataURL('image/png');
-    onSave(dataURL);
+    if (fabricCanvasRef.current && onSave) {
+      const dataURL = fabricCanvasRef.current.toDataURL();
+      onSave(dataURL);
+    }
+    handleClose();
+  };
+
+  const handleClear = () => {
+    if (fabricCanvasRef.current) {
+      const objects = fabricCanvasRef.current.getObjects();
+      objects.forEach((obj) => {
+        if (obj.selectable !== false) {
+          fabricCanvasRef.current.remove(obj);
+        }
+      });
+      fabricCanvasRef.current.renderAll();
+    }
   };
 
   const handleCancel = () => {
-    onClose();
+    handleClose();
+  };
+
+  const handleClose = () => {
+    if (onClose) onClose();
   };
 
   return (
     <group position={position}>
-      {/* Frosted glass page */}
-      <mesh ref={meshRef}>
-        <planeGeometry args={[2, 3]} />
-        <meshPhysicalMaterial
+      {/* Editor Plane with visible canvas */}
+      <mesh ref={meshRef} position={[0, 0, 0]}>
+        <planeGeometry args={[3, 4.5]} />
+        <meshBasicMaterial
           map={texture}
           transparent
-          opacity={1}
-          roughness={0.1}
-          metalness={0}
-          clearcoat={0.5}
-          clearcoatRoughness={0.1}
+          opacity={0.95}
+          side={THREE.DoubleSide}
         />
       </mesh>
 
-      {/* Hidden canvas for Fabric.js */}
-      <Html position={[0, 0, -0.01]} center style={{ pointerEvents: 'none', opacity: 0 }}>
-        <canvas ref={canvasRef} />
+      {/* Canvas positioned on the 3D plane - now visible and interactive */}
+      <Html
+        position={[0, 0, 0.01]}
+        transform
+        occlude={false}
+        style={{
+          pointerEvents: 'auto',
+          width: '600px',
+          height: '900px',
+        }}
+      >
+        <canvas
+          ref={canvasRef}
+          style={{
+            border: '2px solid #ddd',
+            boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+            background: 'white',
+          }}
+        />
       </Html>
 
       {/* Toolbar */}

@@ -1,5 +1,7 @@
 import { atom, useAtom } from "jotai";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+
+const BASE_URL = import.meta.env.BASE_URL || '/';
 
 const pictures = [
   "DSC00680",
@@ -43,43 +45,58 @@ pages.push({
 
 export const UI = () => {
   const [page, setPage] = useAtom(pageAtom);
+  const containerRef = useRef(null);
 
   useEffect(() => {
-    const audio = new Audio("/audios/page-flip-01a.mp3");
-    // audio.play(); // Commented out to fix browser autoplay error
-  }, [page]);
+    const handleKeyDown = (e) => {
+      if (e.key === "ArrowRight" || e.key === "d") {
+        setPage((prev) => Math.min(prev + 1, pages.length - 1));
+      } else if (e.key === "ArrowLeft" || e.key === "a") {
+        setPage((prev) => Math.max(prev - 1, 0));
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [setPage]);
 
   return (
-    <>
-      <main className="pointer-events-none select-none z-10 fixed inset-0 flex flex-col justify-between">
-        <div className="w-full overflow-auto pointer-events-auto flex justify-center">
-          <div className="overflow-auto flex items-center gap-4 max-w-full p-10">
-            {[...pages].map((_, index) => (
-              <button
-                key={index}
-                className={`border-transparent hover:border-white transition-all duration-300 px-4 py-3 rounded-full text-lg uppercase shrink-0 border ${
-                  index === page
-                    ? "bg-white/90 text-black"
-                    : "bg-black/30 text-white"
-                }`}
-                onClick={() => setPage(index)}
-              >
-                {index === 0 ? "Cover" : `Page ${index}`}
-              </button>
-            ))}
-            <button
-              className={`border-transparent hover:border-white transition-all duration-300 px-4 py-3 rounded-full text-lg uppercase shrink-0 border ${
-                page === pages.length
-                  ? "bg-white/90 text-black"
-                  : "bg-black/30 text-white"
-              }`}
-              onClick={() => setPage(pages.length)}
-            >
-              Back Cover
-            </button>
-          </div>
-        </div>
-      </main>
-    </>
+    <div
+      ref={containerRef}
+      className="pointer-events-none fixed inset-0 flex flex-col justify-between px-8 py-8 z-10"
+    >
+      {/* Optopia Eye Video */}
+      <video
+        autoPlay
+        loop
+        muted
+        playsInline
+        className="absolute top-4 right-4 w-32 h-32 object-cover rounded-lg pointer-events-auto"
+      >
+        <source src={`${BASE_URL}optopia eye.mp4`} type="video/mp4" />
+      </video>
+
+      {/* Navigation at bottom */}
+      <div className="flex justify-center items-center gap-4 pointer-events-auto">
+        <button
+          className="border-2 border-black bg-white/80 hover:bg-white transition-all duration-300 px-4 py-2 rounded-lg font-semibold text-black cursor-pointer shadow-lg"
+          onClick={() => setPage((prev) => Math.max(prev - 1, 0))}
+        >
+          ← Previous
+        </button>
+        
+        <span className="text-black font-bold bg-white/80 px-4 py-2 rounded-lg">
+          {page} / {pages.length - 1}
+        </span>
+        
+        <button
+          className="border-2 border-black bg-white/80 hover:bg-white transition-all duration-300 px-4 py-2 rounded-lg font-semibold text-black cursor-pointer shadow-lg"
+          onClick={() => setPage((prev) => Math.min(prev + 1, pages.length - 1))}
+        >
+          Next →
+        </button>
+      </div>
+    </div>
   );
 };

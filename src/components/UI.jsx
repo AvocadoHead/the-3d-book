@@ -54,52 +54,43 @@ export const UI = () => {
       <main className=" pointer-events-none select-none z-10 fixed  inset-0  flex justify-between flex-col">
         <div className="w-full overflow-auto pointer-events-auto flex justify-center">
           <div className="overflow-auto flex items-center gap-4 max-w-full p-10">
-            <button
-              className={`border-transparent hover:border-white transition-all duration-300  px-4 py-3 rounded-full  text-lg uppercase shrink-0 border ${
-                page === 0
-                  ? "border-white cursor-not-allowed opacity-50"
-                  : "border-white cursor-pointer opacity-100 pointer-events-auto"
-              }`}
-              disabled={page === 0}
-              onClick={() => setPage(page - 1)}
-            >
-              Previous
-            </button>
-            <button
-              className={`border-transparent hover:border-white transition-all duration-300  px-4 py-3 rounded-full  text-lg uppercase shrink-0 border ${
-                page === pages.length - 1
-                  ? "border-white cursor-not-allowed opacity-50"
-                  : "border-white cursor-pointer opacity-100 pointer-events-auto"
-              }`}
-              disabled={page === pages.length - 1}
-              onClick={() => setPage(page + 1)}
-            >
-              Next
-            </button>
+            {[...pages].map((_, index) => (
+              <button
+                key={index}
+                className={`border-transparent hover:border-white transition-all duration-300  px-4 py-3 rounded-full  text-lg uppercase shrink-0 border ${
+                  index === page
+                    ? "bg-white/90 text-black"
+                    : "opacity-60"
+                }`}
+                onClick={() => setPage(index)}
+              >
+                {index === 0 ? "Cover" : `Page ${index}`}
+              </button>
+            ))}
           </div>
         </div>
       </main>
       <div className="fixed left-0 top-1/2 -translate-y-1/2 pointer-events-none select-none opacity-20">
         <div className="-rotate-90 origin-left whitespace-nowrap text-6xl font-black">
           <div className="animate-horizontal-scroll flex gap-8">
-            <span>ספר תלת מימדי • </span>
-            <span>React Three Fiber • </span>
-            <span>Three.js • </span>
-            <span>ספר תלת מימדי • </span>
-            <span>React Three Fiber • </span>
-            <span>Three.js • </span>
+            <span>שאלה לי אליך • </span>
+            <span>שאלה לי אליך • </span>
+            <span>שאלה לי אליך • </span>
+            <span>שאלה לי אליך • </span>
+            <span>שאלה לי אליך • </span>
+            <span>שאלה לי אליך • </span>
           </div>
         </div>
       </div>
       <div className="fixed right-0 top-1/2 -translate-y-1/2 pointer-events-none select-none opacity-20">
         <div className="rotate-90 origin-right whitespace-nowrap text-6xl font-black">
           <div className="animate-horizontal-scroll flex gap-8">
-            <span>ספר תלת מימדי • </span>
-            <span>React Three Fiber • </span>
-            <span>Three.js • </span>
-            <span>ספר תלת מימדי • </span>
-            <span>React Three Fiber • </span>
-            <span>Three.js • </span>
+            <span>שאלה לי אליך • </span>
+            <span>שאלה לי אליך • </span>
+            <span>שאלה לי אליך • </span>
+            <span>שאלה לי אליך • </span>
+            <span>שאלה לי אליך • </span>
+            <span>שאלה לי אליך • </span>
           </div>
         </div>
       </div>

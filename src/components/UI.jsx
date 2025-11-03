@@ -25,7 +25,7 @@ export const editModeAtom = atom(false);
 
 export const pages = [
   {
-    front: "כריכה שאלות לי אליך",
+    front: "שאלות לי אליך cover",
     back: pictures[0],
   },
 ];
@@ -39,7 +39,7 @@ for (let i = 1; i < pictures.length - 1; i += 2) {
 
 pages.push({
   front: pictures[pictures.length - 1],
-  back: "book-back",
+  back: "שאלה לי אליך back cover",
 });
 
 export const UI = () => {
@@ -60,29 +60,30 @@ export const UI = () => {
         >
           <img className="w-20" src="/images/logo.png" />
         </a>
-        <button
-  onClick={() => setEditorOpen(!editorOpen)}
-  className="pointer-events-auto fixed bottom-10 right-10 w-16 h-16 bg-blue-500 text-white rounded-full shadow-lg hover:bg-blue-600 transition-all hover:scale-110 flex items-center justify-center text-2xl z-50"
-  title="ערוך עמוד חדש"
->
-  ✏️
-</button>
         <div className="w-full overflow-auto pointer-events-auto flex justify-center">
-          <div className="flex gap-4 max-w-full p-10">
+          <div className="overflow-auto flex items-start gap-4">
             {[...pages].map((_, index) => (
               <button
                 key={index}
-                className={`border-transparent hover:border-white transition-all duration-300  ${
+                className={`border-transparent hover:border-white transition-all duration-300  px-4 py-3 rounded-full  text-lg uppercase shrink-0 border ${
                   index === page
-                    ? "border-white"
-                    : "border-transparent opacity-50 hover:opacity-100"
+                    ? "bg-white/90 text-black"
+                    : "bg-black/30 text-white"
                 }`}
                 onClick={() => setPage(index)}
               >
-                <div className="w-4 h-4 rounded-full bg-white" />
+                {index === 0 ? "Cover" : `Page ${index}`}
               </button>
             ))}
           </div>
+        </div>
+        <div className="pb-10 flex items-center flex-col">
+          <button
+            className="pointer-events-auto bg-white/90 hover:bg-white transition-colors duration-300 cursor-pointer px-4 py-3 rounded-full text-lg uppercase"
+            onClick={() => setEditorOpen((prev) => !prev)}
+          >
+            {editorOpen ? "Close" : "Open"} Editor
+          </button>
         </div>
       </div>
     </>

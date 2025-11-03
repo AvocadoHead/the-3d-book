@@ -60,7 +60,7 @@ export const UI = () => {
                 className={`border-transparent hover:border-white transition-all duration-300  px-4 py-3 rounded-full  text-lg uppercase shrink-0 border ${
                   index === page
                     ? "bg-white/90 text-black"
-                    : "opacity-60"
+                    : "bg-black/30 text-white"
                 }`}
                 onClick={() => setPage(index)}
               >
@@ -70,30 +70,6 @@ export const UI = () => {
           </div>
         </div>
       </main>
-      <div className="fixed left-0 top-1/2 -translate-y-1/2 pointer-events-none select-none opacity-20">
-        <div className="-rotate-90 origin-left whitespace-nowrap text-6xl font-black">
-          <div className="animate-horizontal-scroll flex gap-8">
-            <span>שאלה לי אליך • </span>
-            <span>שאלה לי אליך • </span>
-            <span>שאלה לי אליך • </span>
-            <span>שאלה לי אליך • </span>
-            <span>שאלה לי אליך • </span>
-            <span>שאלה לי אליך • </span>
-          </div>
-        </div>
-      </div>
-      <div className="fixed right-0 top-1/2 -translate-y-1/2 pointer-events-none select-none opacity-20">
-        <div className="rotate-90 origin-right whitespace-nowrap text-6xl font-black">
-          <div className="animate-horizontal-scroll flex gap-8">
-            <span>שאלה לי אליך • </span>
-            <span>שאלה לי אליך • </span>
-            <span>שאלה לי אליך • </span>
-            <span>שאלה לי אליך • </span>
-            <span>שאלה לי אליך • </span>
-            <span>שאלה לי אליך • </span>
-          </div>
-        </div>
-      </div>
     </>
   );
 };

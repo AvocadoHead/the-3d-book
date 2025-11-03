@@ -19,6 +19,10 @@ import {
 import { degToRad } from "three/src/math/MathUtils.js";
 import { pageAtom, pages } from "./UI";
 
+const getTextureExtension = (name) => {
+  return name.includes('כריכה') ? 'png' : 'jpg';
+};
+
 const easingFactor = 0.5; // Controls the speed of the easing
 const easingFactorFold = 0.3; // Controls the speed of the easing
 const insideCurveStrength = 0.18; // Controls the strength of the curve
@@ -50,7 +54,6 @@ for (let i = 0; i < position.count; i++) {
   // ALL VERTICES
   vertex.fromBufferAttribute(position, i); // get the vertex
   const x = vertex.x; // get the x position of the vertex
-
   const skinIndex = Math.max(0, Math.floor(x / SEGMENT_WIDTH)); // calculate the skin index
   let skinWeight = (x % SEGMENT_WIDTH) / SEGMENT_WIDTH; // calculate the skin weight
 
@@ -67,39 +70,37 @@ pageGeometry.setAttribute(
   new Float32BufferAttribute(skinWeights, 4)
 );
 
-const whiteColor = new Color("white");
-const emissiveColor = new Color("orange");
-
 const pageMaterials = [
-  new MeshStandardMaterial({
-    color: whiteColor,
-  }),
-  new MeshStandardMaterial({
-    color: "#111",
-  }),
-  new MeshStandardMaterial({
-    color: whiteColor,
-  }),
-  new MeshStandardMaterial({
-    color: whiteColor,
-  }),
+  new MeshStandardMaterial({ color: new Color("white") }),
+  new MeshStandardMaterial({ color: new Color("white") }),
+  new MeshStandardMaterial({ color: new Color("white") }),
+  new MeshStandardMaterial({ color: new Color("white") }),
 ];
 
+pageMaterials[0].color.convertSRGBToLinear();
+pageMaterials[1].color.convertSRGBToLinear();
+pageMaterials[2].color.convertSRGBToLinear();
+pageMaterials[3].color.convertSRGBToLinear();
+
 pages.forEach((page) => {
-  useTexture.preload(`/textures/${page.front}.jpg`);
-  useTexture.preload(`/textures/${page.back}.jpg`);
+  useTexture.preload(`/textures/${page.front}.${getTextureExtension(page.front)}`);
+  useTexture.preload(`/textures/${page.back}.${getTextureExtension(page.back)}`);
   useTexture.preload(`/textures/book-cover-roughness.jpg`);
 });
 
 const Page = ({ number, front, back, page, opened, bookClosed, ...props }) => {
   const [picture, picture2, pictureRoughness] = useTexture([
-    `/textures/${front}.jpg`,
-    `/textures/${back}.jpg`,
+    `/textures/${front}.${getTextureExtension(front)}`,
+    `/textures/${back}.${getTextureExtension(back)}`,
     ...(number === 0 || number === pages.length - 1
       ? [`/textures/book-cover-roughness.jpg`]
       : []),
   ]);
+  const [highlighted, setHighlighted] = useState(false);
+  useCursor(highlighted);
+
   picture.colorSpace = picture2.colorSpace = SRGBColorSpace;
+
   const group = useRef();
   const turnedAt = useRef(0);
   const lastOpened = useRef(opened);
@@ -117,40 +118,36 @@ const Page = ({ number, front, back, page, opened, bookClosed, ...props }) => {
         bone.position.x = SEGMENT_WIDTH;
       }
       if (i > 0) {
-        bones[i - 1].add(bone); // attach the new bone to the previous bone
+        bones[i - 1].add(bone);
       }
     }
     const skeleton = new Skeleton(bones);
 
     const materials = [
       ...pageMaterials,
-      new MeshStandardMaterial({
-        color: whiteColor,
-        map: picture,
-        ...(number === 0
-          ? {
-              roughnessMap: pictureRoughness,
-            }
-          : {
-              roughness: 0.1,
-            }),
-        emissive: emissiveColor,
-        emissiveIntensity: 0,
-      }),
-      new MeshStandardMaterial({
-        color: whiteColor,
-        map: picture2,
-        ...(number === pages.length - 1
-          ? {
-              roughnessMap: pictureRoughness,
-            }
-          : {
-              roughness: 0.1,
-            }),
-        emissive: emissiveColor,
-        emissiveIntensity: 0,
-      }),
+      ...pageMaterials,
+      ...pageMaterials,
     ];
+    materials[0] = pageMaterials[0].clone();
+    materials[1] = pageMaterials[1].clone();
+    materials[2] = pageMaterials[2];
+    materials[3] = pageMaterials[3];
+    materials[4] = pageMaterials[1].clone();
+    materials[5] = pageMaterials[0].clone();
+
+    materials[0].map = picture;
+    materials[1].map = picture;
+    materials[4].map = picture2;
+    materials[5].map = picture2;
+
+    if (number === 0) {
+      materials[0].roughnessMap = pictureRoughness;
+      materials[1].roughnessMap = pictureRoughness;
+    } else if (number === pages.length - 1) {
+      materials[4].roughnessMap = pictureRoughness;
+      materials[5].roughnessMap = pictureRoughness;
+    }
+
     const mesh = new SkinnedMesh(pageGeometry, materials);
     mesh.castShadow = true;
     mesh.receiveShadow = true;
@@ -158,27 +155,18 @@ const Page = ({ number, front, back, page, opened, bookClosed, ...props }) => {
     mesh.add(skeleton.bones[0]);
     mesh.bind(skeleton);
     return mesh;
-  }, []);
-
-  // useHelper(skinnedMeshRef, SkeletonHelper, "red");
+  }, [picture, picture2, pictureRoughness]);
 
   useFrame((_, delta) => {
     if (!skinnedMeshRef.current) {
       return;
     }
 
-    const emissiveIntensity = highlighted ? 0.22 : 0;
-    skinnedMeshRef.current.material[4].emissiveIntensity =
-      skinnedMeshRef.current.material[5].emissiveIntensity = MathUtils.lerp(
-        skinnedMeshRef.current.material[4].emissiveIntensity,
-        emissiveIntensity,
-        0.1
-      );
-
     if (lastOpened.current !== opened) {
       turnedAt.current = +new Date();
       lastOpened.current = opened;
     }
+
     let turningTime = Math.min(400, new Date() - turnedAt.current) / 400;
     turningTime = Math.sin(turningTime * Math.PI);
 
@@ -231,10 +219,6 @@ const Page = ({ number, front, back, page, opened, bookClosed, ...props }) => {
     }
   });
 
-  const [_, setPage] = useAtom(pageAtom);
-  const [highlighted, setHighlighted] = useState(false);
-  useCursor(highlighted);
-
   return (
     <group
       {...props}
@@ -250,7 +234,6 @@ const Page = ({ number, front, back, page, opened, bookClosed, ...props }) => {
       onClick={(e) => {
         e.stopPropagation();
         setPage(opened ? number : number + 1);
-        setHighlighted(false);
       }}
     >
       <primitive
@@ -265,6 +248,10 @@ const Page = ({ number, front, back, page, opened, bookClosed, ...props }) => {
 export const Book = ({ ...props }) => {
   const [page] = useAtom(pageAtom);
   const [delayedPage, setDelayedPage] = useState(page);
+
+  const setPage = (page) => {
+    pageAtom.set(page);
+  };
 
   useEffect(() => {
     let timeout;

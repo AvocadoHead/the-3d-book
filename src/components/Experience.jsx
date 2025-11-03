@@ -27,9 +27,11 @@ export const Experience = () => {
         dampingFactor={0.05}
         minDistance={2}
         maxDistance={10}
-        maxPolarAngle={Math.PI / 2 + 0.3}
+        maxPolarAngle={Math.PI / 2}
+        minPolarAngle={0}
+        enablePan={false}
       />
-      <Environment preset="studio"></Environment>
+      <Environment preset="studio" />
       <directionalLight
         position={[2, 5, 2]}
         intensity={2.5}

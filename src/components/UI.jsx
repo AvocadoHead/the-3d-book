@@ -1,6 +1,5 @@
 import { atom, useAtom } from "jotai";
 import { useEffect } from "react";
-
 const pictures = [
   "DSC00680",
   "DSC00933",
@@ -19,48 +18,47 @@ const pictures = [
   "DSC02064",
   "DSC02069",
 ];
-
 export const pageAtom = atom(0);
-
 export const editModeAtom = atom(false);
-
 export const pages = [
   {
     front: "book-cover",
     back: pictures[0],
   },
 ];
-
 for (let i = 1; i < pictures.length - 1; i += 2) {
   pages.push({
     front: pictures[i % pictures.length],
     back: pictures[(i + 1) % pictures.length],
   });
 }
-
 pages.push({
   front: pictures[pictures.length - 1],
   back: "book-back",
 });
-
 export const UI = () => {
   const [page, setPage] = useAtom(pageAtom);
   const [editorOpen, setEditorOpen] = useAtom(editModeAtom);
-
   useEffect(() => {
     const audio = new Audio("/audios/page-flip-01a.mp3");
     audio.play();
   }, [page]);
-
   return (
     <>
-      <main className=" pointer-events-none select-none z-10 fixed  inset-0  flex justify-between flex-col">
+      <div className=" pointer-events-none select-none z-10 fixed  inset-0  flex justify-between flex-col">
         <a
           className="pointer-events-auto mt-10 ml-10"
           href="https://bruno-simon.com/"
         >
           <img className="w-20" src="/images/logo.png" />
         </a>
+        <button
+  onClick={() => setEditorOpen(!editorOpen)}
+  className="pointer-events-auto fixed bottom-10 right-10 w-16 h-16 bg-blue-500 text-white rounded-full shadow-lg hover:bg-blue-600 transition-all hover:scale-110 flex items-center justify-center text-2xl z-50"
+  title="ערוך עמוד חדש"
+>
+  ✏️
+</button>
         <div className="w-full overflow-auto pointer-events-auto flex justify-center">
           <div className="overflow-auto flex items-center gap-4 max-w-full p-10">
             {[...pages].map((_, index) => (
@@ -88,7 +86,7 @@ export const UI = () => {
             </button>
           </div>
         </div>
-      </main>
+      </div>
       <div className="fixed inset-0 flex items-center -rotate-2 select-none pointer-events-none">
         <div className="relative">
           <div className="bg-white/0 animate-horizontal-scroll flex items-center gap-8 px-8 w-max">

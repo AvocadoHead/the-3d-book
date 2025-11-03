@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useAtom } from 'jotai';
+import { editModeAtom } from './UI';
 import { Environment, Float, OrbitControls } from "@react-three/drei";
 import { Book } from "./Book";
 import { FloatingEditorPage } from './FloatingEditorPage';
 
 export const Experience = () => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [editingPage, setEditingPage] = useState(null);
+  const [isEditing, setIsEditing] = useAtom(editModeAtom);
 
   return (
     <>
@@ -21,7 +21,7 @@ export const Experience = () => {
       </group>
       <OrbitControls />
       <Environment preset="studio"></Environment>
-      <directionalLight
+      <DirectionalLight
         position={[2, 5, 2]}
         intensity={2.5}
         castShadow
@@ -36,12 +36,7 @@ export const Experience = () => {
       {isEditing && (
         <FloatingEditorPage
           onClose={() => setIsEditing(false)}
-          onSave={(dataURL) => {
-            console.log('Page saved:', dataURL);
-            setIsEditing(false);
-            // TODO: Add to book pages
-          }}
-          position={[0, 0, 3]}
+          onSave={() => setIsEditing(false)}
         />
       )}
     </>

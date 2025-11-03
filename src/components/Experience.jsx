@@ -1,12 +1,11 @@
 import { useAtom } from 'jotai';
 import { editModeAtom } from './UI';
 import { Environment, Float, OrbitControls } from "@react-three/drei";
+import { EffectComposer, DepthOfField } from '@react-three/postprocessing';
 import { Book } from "./Book";
 import { FloatingEditorPage } from './FloatingEditorPage';
-
 export const Experience = () => {
   const [isEditing, setIsEditing] = useAtom(editModeAtom);
-
   return (
     <>
       <group opacity={isEditing ? 0.3 : 1}>
@@ -21,7 +20,7 @@ export const Experience = () => {
       </group>
       <OrbitControls />
       <Environment preset="studio"></Environment>
-      <DirectionalLight
+      <directionalLight
         position={[2, 5, 2]}
         intensity={2.5}
         castShadow
@@ -38,6 +37,11 @@ export const Experience = () => {
           onClose={() => setIsEditing(false)}
           onSave={() => setIsEditing(false)}
         />
+      )}
+      {isEditing && (
+        <EffectComposer>
+          <DepthOfField focusDistance={0} focalLength={0.02} bokehScale={2} height={480} />
+        </EffectComposer>
       )}
     </>
   );

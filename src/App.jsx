@@ -7,6 +7,7 @@ import { UI } from "./components/UI";
 function App() {
   return (
     <>
+      <UI />
       <Loader />
       <Canvas shadows camera={{
           position: [-0.5, 1, window.innerWidth > 800 ? 4 : 9],
@@ -18,7 +19,6 @@ function App() {
           </Suspense>
         </group>
       </Canvas>
-      <UI />
     </>
   );
 }

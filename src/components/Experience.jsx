@@ -1,16 +1,24 @@
+import { useState } from 'react';
 import { Environment, Float, OrbitControls } from "@react-three/drei";
 import { Book } from "./Book";
+import { FloatingEditorPage } from './FloatingEditorPage';
+
 export const Experience = () => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingPage, setEditingPage] = useState(null);
+
   return (
     <>
-      <Float
-        rotation-x={-Math.PI / 4}
-        floatIntensity={1}
-        speed={2}
-        rotationIntensity={2}
-      >
-        <Book />
-      </Float>
+      <group opacity={isEditing ? 0.3 : 1}>
+        <Float
+          rotation-x={-Math.PI / 4}
+          floatIntensity={1}
+          speed={2}
+          rotationIntensity={2}
+        >
+          <Book />
+        </Float>
+      </group>
       <OrbitControls />
       <Environment preset="studio"></Environment>
       <directionalLight
@@ -25,6 +33,17 @@ export const Experience = () => {
         <planeGeometry args={[100, 100]} />
         <shadowMaterial transparent opacity={0.2} />
       </mesh>
+      {isEditing && (
+        <FloatingEditorPage
+          onClose={() => setIsEditing(false)}
+          onSave={(dataURL) => {
+            console.log('Page saved:', dataURL);
+            setIsEditing(false);
+            // TODO: Add to book pages
+          }}
+          position={[0, 0, 3]}
+        />
+      )}
     </>
   );
 };

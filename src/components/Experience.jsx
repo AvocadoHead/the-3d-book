@@ -21,7 +21,14 @@ export const Experience = () => {
           <Book />
         </Float>
       </group>
-      <OrbitControls />
+      <OrbitControls 
+        target={[0.64, 0, 0]}
+        enableDamping
+        dampingFactor={0.05}
+        minDistance={2}
+        maxDistance={10}
+        maxPolarAngle={Math.PI / 2 + 0.3}
+      />
       <Environment preset="studio"></Environment>
       <directionalLight
         position={[2, 5, 2]}

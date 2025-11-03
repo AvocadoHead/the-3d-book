@@ -72,9 +72,23 @@ const emissiveColor = new Color("orange");
 const pageMaterials = [
   new MeshStandardMaterial({
     color: whiteColor,
+    emissive: emissiveColor,
+    emissiveIntensity: 0,
+    roughness: 0.4,
+    metalness: 0,
   }),
   new MeshStandardMaterial({
-    color: "#111",
+    color: whiteColor,
+    emissive: emissiveColor,
+    emissiveIntensity: 0,
+    roughness: 0.4,
+    metalness: 0,
+  }),
+  new MeshStandardMaterial({
+    color: whiteColor,
+  }),
+  new MeshStandardMaterial({
+    color: whiteColor,
   }),
   new MeshStandardMaterial({
     color: whiteColor,
@@ -85,86 +99,25 @@ const pageMaterials = [
 ];
 
 pages.forEach((page) => {
-  useTexture.preload(`textures/${page.front}.jpg`);
-  useTexture.preload(`textures/${page.back}.jpg`);
+  useTexture.preload(`/textures/${page.front}.jpg`);
+  useTexture.preload(`/textures/${page.back}.jpg`);
+  useTexture.preload(`/textures/book-cover-roughness.jpg`);
 });
 
 const Page = ({ number, front, back, page, opened, bookClosed, ...props }) => {
-  const [picture, picture2] = useTexture([
-    `textures/${front}.jpg`,
-    `textures/${back}.jpg`,
+  const [picture, picture2, pictureRoughness] = useTexture([
+    `/textures/${front}.jpg`,
+    `/textures/${back}.jpg`,
+    `/textures/book-cover-roughness.jpg`,
   ]);
-  picture.colorSpace = picture2.colorSpace = SRGBColorSpace;
+  picture.colorSpace = SRGBColorSpace;
+  picture2.colorSpace = SRGBColorSpace;
+
   const group = useRef();
   const skinnedMeshRef = useRef();
 
-  const turnedAt = useRef(0);
-  const lastOpened = useRef(opened);
-
-  const [highlighted, setHighlighted] = useState(false);
-  useCursor(highlighted);
-
-  useFrame((_, delta) => {
-    if (!skinnedMeshRef.current) {
-      return;
-    }
-
-    if (lastOpened.current !== opened) {
-      turnedAt.current = +new Date();
-      lastOpened.current = opened;
-    }
-
-    let turningTime = Math.min(400, new Date() - turnedAt.current) / 400;
-    turningTime = Math.sin(turningTime * Math.PI);
-
-    let targetRotation = opened ? -Math.PI / 2 : Math.PI / 2;
-    if (!bookClosed) {
-      targetRotation += degToRad(number * 0.8);
-    }
-
-    const bones = skinnedMeshRef.current.skeleton.bones;
-    for (let i = 0; i < bones.length; i++) {
-      const target = i === 0 ? group.current : bones[i];
-
-      const insideCurveIntensity = i < 8 ? Math.sin(i * 0.2 + 0.25) : 0;
-      const outsideCurveIntensity = i >= 8 ? Math.cos(i * 0.3 + 0.09) : 0;
-      const turningIntensity =
-        Math.sin(i * Math.PI * (1 / bones.length)) * turningTime;
-      let rotationAngle =
-        insideCurveStrength * insideCurveIntensity * targetRotation -
-        outsideCurveStrength * outsideCurveIntensity * targetRotation +
-        turningCurveStrength * turningIntensity * targetRotation;
-      let foldRotationAngle = degToRad(Math.sign(targetRotation) * 2);
-      if (bookClosed) {
-        if (i === 0) {
-          rotationAngle = targetRotation;
-          foldRotationAngle = 0;
-        } else {
-          rotationAngle = 0;
-          foldRotationAngle = 0;
-        }
-      }
-      easing.dampAngle(
-        target.rotation,
-        "y",
-        rotationAngle,
-        easingFactor,
-        delta
-      );
-
-      const foldIntensity =
-        i > 8
-          ? Math.sin(i * Math.PI * (1 / bones.length) - 0.5) * turningTime
-          : 0;
-      easing.dampAngle(
-        target.rotation,
-        "x",
-        foldRotationAngle * foldIntensity,
-        easingFactorFold,
-        delta
-      );
-    }
-  });
+  const [hovered, setHovered] = useState(false);
+  useCursor(hovered);
 
   const manualSkinnedMesh = useMemo(() => {
     const bones = [];
@@ -184,46 +137,143 @@ const Page = ({ number, front, back, page, opened, bookClosed, ...props }) => {
 
     const materials = [
       ...pageMaterials,
-      new MeshStandardMaterial({
+    ];
+    if (number === 0) {
+      materials[0] = new MeshStandardMaterial({
         color: whiteColor,
         map: picture,
-        ...(number === 0
-          ? {
-              emissive: emissiveColor,
-              emissiveIntensity: 0,
-            }
-          : {}),
-      }),
-      new MeshStandardMaterial({
+        roughnessMap: pictureRoughness,
+        roughness: 0.4,
+        metalness: 0,
+      });
+      materials[1] = new MeshStandardMaterial({
         color: whiteColor,
         map: picture2,
-      }),
-    ];
+        roughnessMap: pictureRoughness,
+        roughness: 0.4,
+        metalness: 0,
+      });
+    } else if (number === pages.length) {
+      materials[0] = new MeshStandardMaterial({
+        color: whiteColor,
+        map: picture,
+        roughnessMap: pictureRoughness,
+        roughness: 0.4,
+        metalness: 0,
+      });
+      materials[1] = new MeshStandardMaterial({
+        color: whiteColor,
+        map: picture2,
+        roughnessMap: pictureRoughness,
+        roughness: 0.4,
+        metalness: 0,
+      });
+    } else {
+      materials[0] = new MeshStandardMaterial({
+        color: whiteColor,
+        map: picture,
+        roughness: 0.4,
+        metalness: 0,
+      });
+      materials[1] = new MeshStandardMaterial({
+        color: whiteColor,
+        map: picture2,
+        roughness: 0.4,
+        metalness: 0,
+      });
+    }
+
     const mesh = new SkinnedMesh(pageGeometry, materials);
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     mesh.frustumCulled = false;
-    mesh.add(bones[0]);
+    mesh.add(skeleton.bones[0]);
     mesh.bind(skeleton);
     return mesh;
-  }, [picture, picture2]);
+  }, [picture, picture2, pictureRoughness]);
 
-  useFrame(() => {
-    if (!skinnedMeshRef.current) return;
+  useEffect(() => {
+    if (!skinnedMeshRef.current) {
+      return;
+    }
 
-    const emissiveMaterial =
-      skinnedMeshRef.current.material[skinnedMeshRef.current.material.length - 2];
-    if (emissiveMaterial) {
-      if (number === 0) {
-        const targetIntensity = highlighted ? 0.22 : 0;
-        emissiveMaterial.emissiveIntensity = MathUtils.lerp(
-          emissiveMaterial.emissiveIntensity,
-          targetIntensity,
-          0.1
-        );
-      } else {
-        emissiveMaterial.emissiveIntensity = 0;
+    const mesh = manualSkinnedMesh;
+    skinnedMeshRef.current.add(mesh);
+
+    return () => {
+      skinnedMeshRef.current.remove(mesh);
+    };
+  }, [manualSkinnedMesh]);
+
+  useFrame((_, delta) => {
+    if (!skinnedMeshRef.current) {
+      return;
+    }
+
+    const emissiveIntensity = hovered ? 0.22 : 0;
+    manualSkinnedMesh.material[0].emissiveIntensity = MathUtils.lerp(
+      manualSkinnedMesh.material[0].emissiveIntensity,
+      emissiveIntensity,
+      0.1
+    );
+
+    manualSkinnedMesh.material[1].emissiveIntensity = MathUtils.lerp(
+      manualSkinnedMesh.material[1].emissiveIntensity,
+      emissiveIntensity,
+      0.1
+    );
+
+    const targetRotation = opened ? -Math.PI / 2 : Math.PI / 2;
+    if (!bookClosed) {
+      easing.dampAngle(
+        group.current.rotation,
+        "y",
+        targetRotation,
+        easingFactor,
+        delta
+      );
+    }
+
+    const bones = manualSkinnedMesh.skeleton.bones;
+    for (let i = 0; i < bones.length; i++) {
+      const target = i === 0 ? group.current.rotation.y : bones[i - 1].rotation.y;
+      const insideCurveIntensity = i < 8 ? Math.sin(i * 0.2 + 0.25) : 0;
+      const outsideCurveIntensity = i >= 8 ? Math.cos(i * 0.3 + 0.09) : 0;
+      const turningIntensity =
+        Math.sin(i * 0.09) * (i < bones.length / 2 ? -1 : 1);
+
+      let rotationAngle = degToRad(Math.abs(group.current.rotation.y));
+      let foldRotationAngle = degToRad(Math.abs(target));
+      if (bookClosed) {
+        if (opened) {
+          rotationAngle = degToRad(90);
+        } else {
+          rotationAngle = 0;
+        }
       }
+
+      const insideCurve =
+        insideCurveStrength * insideCurveIntensity * rotationAngle;
+      const outsideCurve =
+        outsideCurveStrength * outsideCurveIntensity * rotationAngle;
+      const turningCurve =
+        turningCurveStrength * turningIntensity * foldRotationAngle;
+
+      easing.dampAngle(
+        bones[i].rotation,
+        "y",
+        target,
+        easingFactorFold,
+        delta
+      );
+
+      easing.dampAngle(
+        bones[i].rotation,
+        "z",
+        insideCurve + outsideCurve + turningCurve,
+        easingFactorFold,
+        delta
+      );
     }
   });
 
@@ -233,59 +283,51 @@ const Page = ({ number, front, back, page, opened, bookClosed, ...props }) => {
       ref={group}
       onPointerEnter={(e) => {
         e.stopPropagation();
-        setHighlighted(true);
+        setHovered(true);
       }}
       onPointerLeave={(e) => {
         e.stopPropagation();
-        setHighlighted(false);
-      }}
-      onClick={(e) => {
-        e.stopPropagation();
-        if (page === number) {
-          return;
-        }
-        if (number === 0) {
-          // Go to cover
-          window.location.hash = "#0";
-        } else if (page < number) {
-          // Clicked on a page ahead, go to next page
-          window.location.hash = `#${page + 1}`;
-        }
+        setHovered(false);
       }}
     >
-      <primitive
-        object={manualSkinnedMesh}
-        ref={skinnedMeshRef}
-        position-z={-number * PAGE_DEPTH + page * PAGE_DEPTH}
-      />
+      <group ref={skinnedMeshRef} />
     </group>
   );
 };
 
-const Book = ({ ...props }) => {
+export const Book = ({ ...props }) => {
   const [page] = useAtom(pageAtom);
   const [delayedPage, setDelayedPage] = useState(page);
 
   useEffect(() => {
     let timeout;
-    const changeDelay = Math.abs(delayedPage - page) * 50;
-    if (page > delayedPage) {
-      timeout = setTimeout(() => {
-        setDelayedPage((p) => p + 1);
-      }, changeDelay);
-    } else if (page < delayedPage) {
-      timeout = setTimeout(() => {
-        setDelayedPage((p) => p - 1);
-      }, changeDelay);
-    }
+    const goToPage = () => {
+      setDelayedPage((prev) => {
+        if (page === prev) {
+          return prev;
+        } else {
+          timeout = setTimeout(
+            goToPage,
+            Math.abs(page - prev) > 2 ? 50 : 150
+          );
+          if (page > prev) {
+            return prev + 1;
+          } else if (page < prev) {
+            return prev - 1;
+          }
+        }
+        return prev;
+      });
+    };
+    timeout = setTimeout(goToPage, 50);
     return () => {
       clearTimeout(timeout);
     };
-  }, [page, delayedPage]);
+  }, [page]);
 
   return (
     <group {...props} rotation-y={-Math.PI / 2}>
-      {[...pages].map((pageData, index) => (
+      {pages.map((pageData, index) => (
         <Page
           key={index}
           page={delayedPage}
@@ -298,5 +340,3 @@ const Book = ({ ...props }) => {
     </group>
   );
 };
-
-export default Book;

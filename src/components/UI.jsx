@@ -100,25 +100,25 @@ export const UI = () => {
         <div className="relative">
           <div className="bg-white/0 animate-horizontal-scroll flex items-center gap-8 w-max px-8">
             <h2 className="shrink-0 text-white text-10xl font-black ">
-              Wawa Sensei
+              Optopia
             </h2>
             <h2 className="shrink-0 text-white text-8xl italic font-light">
-              React Three Fiber
+              Book It
             </h2>
             <h2 className="shrink-0 text-white text-12xl font-bold">
-              Three.js
+              Ask
             </h2>
             <h2 className="shrink-0 text-transparent text-12xl font-bold italic outline-text">
-              Ultimate Guide
-            </h2>
-            <h2 className="shrink-0 text-white text-9xl font-medium">
-              Tutorials
-            </h2>
-            <h2 className="shrink-0 text-white text-9xl font-extralight italic">
               Learn
             </h2>
+            <h2 className="shrink-0 text-white text-9xl font-medium">
+              שאלה
+            </h2>
+            <h2 className="shrink-0 text-white text-9xl font-extralight italic">
+              Love
+            </h2>
             <h2 className="shrink-0 text-white text-13xl font-bold">
-              Practice
+              אליך
             </h2>
             <h2 className="shrink-0 text-transparent text-13xl font-bold outline-text italic">
               Creative

@@ -95,8 +95,7 @@ export const UI = () => {
         <div className="w-full overflow-hidden pointer-events-auto">
           <div className="bulletin-container">
             <div className="bulletin-text">
-              ‎ליאני, הספר מוקדש לשני האנשים שהכי אהבתי בעולם, אמא אליזבת לבית קימלפלד ואבא אביגדור לוי שבתו־ן. אני מעריץ אתכם במיוחד על היכולת שלכם להעריך אנשים שונים ממכם למרות שלכם עצמכם היה כל־כך קשה. אני חושב שזה מה שעזר לי לחיות בעולם הזה שזה כל־כך מרכיב עלי. אני מרוויח בקושי והזמנים כאן קשים מאוד. אבל עדיין יש לי אמונה שהעתיד שלי טוב, ואני אמשיך להיות מאושר, ולשנות את העולם, גם מעט. כל זה בזכות חינוך שלכם. תודה, ואהבה, אייל.
-            </div>
+מגזין שיש בו הכל, ספר אישי בהתאמה, אלבום תמונות אינסופי, ניוזלטר משולב קטעי וידאו, בספר האינטראקטיבי הזה תוכלו ליצוק את התוכן שלכם. לתמיכה בפרויקט צרו קשר ב-eyalizenman@gmail.com            </div>
           </div>
           <style>
             {`
@@ -112,7 +111,7 @@ export const UI = () => {
               
               .bulletin-text {
                 display: inline-block;
-                animation: scroll-left 60s linear infinite;
+                animation: scroll-right 60s linear infinite;
                 font-family: 'Heebo', sans-serif;
                 font-size: 1.5rem;
                 color: white;

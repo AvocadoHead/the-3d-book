@@ -15,7 +15,7 @@ const pictures = [
   "IzenBook/IzenBook10",
   "IzenBook/IzenBook011",
   "שאלות לי אליך cover",
-  "back",
+  "שאלה לי אליך back cover",
 ];
 
 export const pageAtom = atom(0);
@@ -58,12 +58,4 @@ export const UI = () => {
       >
         <img className="w-10" src="/images/whatsapp.png" />
       </a>
-      <button
-        className="fixed top-10 right-10 pointer-events-auto z-10 bg-black text-white py-2 px-4 rounded-md"
-        onClick={() => setEditorOpen(!editorOpen)}
-      >
-        Editor
-      </button>
-    </>
-  );
-};
+      <button className="fixed top-10 right-10 pointer-events-auto z-10 bg-black text-white py-2 px-4 rounded-md"

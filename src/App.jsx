@@ -1,26 +1,29 @@
-import { Suspense } from 'react';
-import { Canvas } from '@react-three/fiber';
-import { Loader } from '@react-three/drei';
-import { Experience } from './components/Experience';
+import { Loader } from "@react-three/drei";
+import { Canvas } from "@react-three/fiber";
+import { Suspense } from "react";
+import { Experience } from "./components/Experience";
+import { UI } from "./components/UI";
 
-export default function App() {
+function App() {
   return (
     <>
       <Canvas
         shadows
-        dpr={[1, 2]}
-        camera={{ position: [0, 1.2, 3.2], fov: 45 }}
-        onCreated={({ gl }) => {
-          gl.setClearColor('#f4f5f7', 1);
-          gl.setPixelRatio(Math.min(2, window.devicePixelRatio));
+        camera={{
+          position: [-0.5, 1, window.innerWidth > 800 ? 4 : 9],
+          fov: 45,
         }}
       >
-        <Suspense fallback={null}>
-          <Experience />
-        </Suspense>
+        <group position-y={0}>
+          <Suspense fallback={null}>
+            <Experience />
+          </Suspense>
+        </group>
       </Canvas>
-      {/* Optional: nice loading bar for suspense assets */}
+      <UI />
       <Loader />
     </>
   );
 }
+
+export default App;

@@ -58,4 +58,79 @@ export const UI = () => {
       >
         <img className="w-10" src="/images/whatsapp.png" />
       </a>
-      <button className="fixed top-10 right-10 pointer-events-auto z-10 bg-black text-white py-2 px-4 rounded-md"
+      <button
+        className="fixed top-10 right-10 pointer-events-auto z-10 bg-black text-white py-2 px-4 rounded-md"
+        onClick={() => setEditorOpen(!editorOpen)}
+      >
+        {editorOpen ? "Close" : "Edit"}
+      </button>
+      <main className="pointer-events-none select-none z-10 fixed inset-0 flex justify-between flex-col">
+        <div className="w-full overflow-auto pointer-events-auto flex justify-center">
+          <div className="overflow-auto flex items-center gap-4 max-w-full p-10">
+            {[...pages].map((_, index) => (
+              <button
+                key={index}
+                className={`border-transparent hover:border-white transition-all duration-300 px-4 py-3 rounded-full text-lg uppercase shrink-0 border ${
+                  index === page
+                    ? "bg-white/90 text-black"
+                    : "bg-black/30 text-white"
+                }`}
+                onClick={() => setPage(index)}
+              >
+                {index === 0 ? "Cover" : `Page ${index}`}
+              </button>
+            ))}
+            <button
+              className={`border-transparent hover:border-white transition-all duration-300 px-4 py-3 rounded-full text-lg uppercase shrink-0 border ${
+                page === pages.length
+                  ? "bg-white/90 text-black"
+                  : "bg-black/30 text-white"
+              }`}
+              onClick={() => setPage(pages.length)}
+            >
+              Back Cover
+            </button>
+          </div>
+        </div>
+        <div className="w-full overflow-hidden pointer-events-auto">
+          <div className="bulletin-container">
+            <div className="bulletin-text">
+              ‎ליאני, הספר מוקדש לשני האנשים שהכי אהבתי בעולם, אמא אליזבת לבית קימלפלד ואבא אביגדור לוי שבתו־ן. אני מעריץ אתכם במיוחד על היכולת שלכם להעריך אנשים שונים ממכם למרות שלכם עצמכם היה כל־כך קשה. אני חושב שזה מה שעזר לי לחיות בעולם הזה שזה כל־כך מרכיב עלי. אני מרוויח בקושי והזמנים כאן קשים מאוד. אבל עדיין יש לי אמונה שהעתיד שלי טוב, ואני אמשיך להיות מאושר, ולשנות את העולם, גם מעט. כל זה בזכות חינוך שלכם. תודה, ואהבה, אייל.
+            </div>
+          </div>
+          <style>
+            {`
+              @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@400;700&display=swap');
+              
+              .bulletin-container {
+                background-color: rgba(0, 0, 0, 0.8);
+                padding: 1rem 0;
+                overflow: hidden;
+                position: relative;
+                white-space: nowrap;
+              }
+              
+              .bulletin-text {
+                display: inline-block;
+                animation: scroll-left 60s linear infinite;
+                font-family: 'Heebo', sans-serif;
+                font-size: 1.5rem;
+                color: white;
+                padding: 0 100vw;
+              }
+              
+              @keyframes scroll-left {
+                from {
+                  transform: translateX(0);
+                }
+                to {
+                  transform: translateX(-50%);
+                }
+              }
+            `}
+          </style>
+        </div>
+      </main>
+    </>
+  );
+};

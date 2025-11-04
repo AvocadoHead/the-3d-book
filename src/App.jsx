@@ -1,8 +1,7 @@
 import { Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Loader } from '@react-three/drei';
-import { Experience } from './Experience';
-
+import { Experience } from './components/Experience';
 export default function App() {
   return (
     <>
@@ -19,7 +18,6 @@ export default function App() {
           <Experience />
         </Suspense>
       </Canvas>
-
       {/* Optional: nice loading bar for suspense assets */}
       <Loader />
     </>

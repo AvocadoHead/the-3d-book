@@ -19,7 +19,7 @@ import {
 import { degToRad } from "three/src/math/MathUtils.js";
 import { pageAtom, pages } from "./UI";
 const getTextureExtension = (name) => {
-  return (name.includes('שאל') || name.includes('cover') || name.includes('כריכה') || name.includes('ספר')) ? 'png' : 'jpg';
+  return (name.includes('שאל') || name.includes('cover') || name.includes('כריכה') || name.includes('ספר') || name.includes('IzenBook') || name === 'back') ? 'png' : 'jpg';
 };
 const easingFactor = 0.5;
 const easingFactorFold = 0.3;
@@ -249,7 +249,7 @@ export const Book = ({ ...props }) => {
     };
   }, [page]);
   return (
-    <group {...props}>
+    <group>
       {[...pages].map((pageData, index) => (
         <Page
           key={index}

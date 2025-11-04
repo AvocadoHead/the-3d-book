@@ -1,6 +1,7 @@
+import { degToRad } from 'three/src/math/MathUtils.js';
 import { useAtom } from 'jotai';
 import { editModeAtom } from './UI';
-import { Environment, Float, OrbitControls } from "@react-three/drei";
+import { Environment, Float, PresentationControls } from "@react-three/drei";
 import { EffectComposer, DepthOfField } from '@react-three/postprocessing';
 import { Book } from "./Book";
 import { FloatingEditorPage } from './FloatingEditorPage';
@@ -10,25 +11,23 @@ export const Experience = () => {
 
   return (
     <>
-      <OrbitControls
-        enableDamping
-        dampingFactor={0.05}
-        enablePan={false}
-        minPolarAngle={0}
-        maxPolarAngle={Math.PI / 2}
-        minDistance={2}
-        maxDistance={10}
-        target={[0.64, 0, 0]}
-      />
-      <Float
-        position={[0.64, 0, 0]}
-        rotation-x={-Math.PI / 4}
-        floatIntensity={1}
-        speed={2}
-        rotationIntensity={2}
+      <PresentationControls
+        snap={true}
+        global
+        config={{mass: 1, tension: 280, friction: 30}}
+        rotation={[degToRad(-22.5), 0, 0]}
+        polar={[-0.3, 0.3]}
+        azimuth={[-0.6, 0.6]}
       >
-        <Book />
-      </Float>
+        <Float
+          position={[0.64, 0, 0]}
+          floatIntensity={1}
+          speed={2}
+          rotationIntensity={2}
+        >
+          <Book />
+        </Float>
+      </PresentationControls>
       <Environment preset="studio" />
       <directionalLight
         position={[2, 5, 2]}

@@ -1,49 +1,40 @@
-import { atom, useAtom } from "jotai";
-import { useEffect, useRef } from "react";
-
-// Original working photos
-const pictures = [
-  "IzenBook/IzenBook001",
-  "IzenBook/IzenBook002",
-  "IzenBook/IzenBook003",
-  "IzenBook/IzenBook004",
-  "IzenBook/IzenBook005",
-  "IzenBook/IzenBook006",
-  "IzenBook/IzenBook007",
-  "IzenBook/IzenBook008",
-  "IzenBook/IzenBook009",
-  "IzenBook/IzenBook10",
-  "IzenBook/IzenBook011",
-  "שאלות לי אליך cover",
-  "שאלה לי אליך back cover",
-];
-
-export const pageAtom = atom(0);
-export const editModeAtom = atom(false);
-
-// Build pages array - this structure works with ANY number of pages
-export const pages = [
-  {
-    front: pictures[11],
-    back: pictures[0],
-  },
-];
-
-for (let i = 1; i < pictures.length - 2; i += 2) {
-  pages.push({
-    front: pictures[i],
-    back: pictures[i + 1],
-  });
-}
-
-pages.push({
-  front: pictures[pictures.length - 2],
-  back: pictures[pictures.length - 1],
-});
+import { useAtom } from "jotai";
+import { useEffect, useState } from "react";
+import { bookPagesAtom, currentPageAtom, editModeAtom } from "../store/atoms";
+import { EditorCanvas } from "./editor/EditorCanvas";
+import { updatePageAtom } from "../store/atoms";
 
 export const UI = () => {
-  const [page, setPage] = useAtom(pageAtom);
+  const [page, setPage] = useAtom(currentPageAtom);
+  const [pages] = useAtom(bookPagesAtom);
   const [editorOpen, setEditorOpen] = useAtom(editModeAtom);
+  const [editingPage, setEditingPage] = useState(null);
+  const [, updatePage] = useAtom(updatePageAtom);
+
+  const handleEditCurrentPage = () => {
+    if (page >= 0 && page < pages.length) {
+      const currentPageData = pages[page];
+      setEditingPage({
+        pageId: currentPageData.id,
+        side: 'front',
+        data: currentPageData.front
+      });
+      setEditorOpen(true);
+    }
+  };
+
+  const handleSaveEdit = (savedData) => {
+    if (editingPage) {
+      updatePage({
+        pageId: editingPage.pageId,
+        side: editingPage.side,
+        texture: savedData.texture,
+        fabricJSON: savedData.fabricJSON,
+      });
+      setEditorOpen(false);
+      setEditingPage(null);
+    }
+  };
 
   useEffect(() => {
     const audio = new Audio("/audios/page-flip-01a.mp3");
@@ -59,17 +50,28 @@ export const UI = () => {
         <img className="w-10" src="/images/whatsapp.png" />
       </a>
       <button
-        className="fixed top-10 right-10 pointer-events-auto z-10 bg-black text-white py-2 px-4 rounded-md"
-        onClick={() => setEditorOpen(!editorOpen)}
+        className="fixed top-10 right-10 pointer-events-auto z-10 bg-gradient-to-r from-purple-600 to-blue-600 text-white py-2 px-6 rounded-lg shadow-lg hover:shadow-xl transition-all"
+        onClick={handleEditCurrentPage}
       >
-        {editorOpen ? "Close" : "Edit"}
+        ✏️ ערוך עמוד
       </button>
+      {editorOpen && editingPage && (
+        <EditorCanvas
+          initialData={editingPage.data}
+          onSave={handleSaveEdit}
+          onClose={() => {
+            setEditorOpen(false);
+            setEditingPage(null);
+          }}
+        />
+      )}
+      
       <main className="pointer-events-none select-none z-10 fixed inset-0 flex justify-between flex-col">
         <div className="w-full overflow-auto pointer-events-auto flex justify-center">
           <div className="overflow-auto flex items-center gap-4 max-w-full p-10">
-            {[...pages].map((_, index) => (
+            {pages.map((pageData, index) => (
               <button
-                key={index}
+                key={pageData.id}
                 className={`border-transparent hover:border-white transition-all duration-300 px-4 py-3 rounded-full text-lg uppercase shrink-0 border ${
                   index === page
                     ? "bg-white/90 text-black"
@@ -77,7 +79,7 @@ export const UI = () => {
                 }`}
                 onClick={() => setPage(index)}
               >
-                {index === 0 ? "Cover" : `Page ${index}`}
+                {index === 0 ? "כריכה" : `עמוד ${index}`}
               </button>
             ))}
             <button
@@ -88,7 +90,7 @@ export const UI = () => {
               }`}
               onClick={() => setPage(pages.length)}
             >
-              Back Cover
+              כריכה אחורית
             </button>
           </div>
         </div>

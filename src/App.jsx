@@ -3,6 +3,7 @@ import { Canvas } from "@react-three/fiber";
 import { Suspense } from "react";
 import { Experience } from "./components/Experience";
 import { UI } from "./components/UI";
+import { PageManager } from "./components/pages/PageManager";
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
         </group>
       </Canvas>
       <UI />
+      <PageManager />
       <Loader />
     </>
   );

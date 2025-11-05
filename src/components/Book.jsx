@@ -17,9 +17,14 @@ import {
   Vector3,
 } from "three";
 import { degToRad } from "three/src/math/MathUtils.js";
-import { pageAtom, pages } from "./UI";
+import { currentPageAtom, bookDataAtom } from "../store/atoms";
 const getTextureExtension = (name) => {
+  if (!name) return 'png';
   return (name.includes('שאל') || name.includes('cover') || name.includes('כריכה') || name.includes('ספר') || name.includes('IzenBook') || name === 'back') ? 'png' : 'jpg';
+};
+
+const isDataUrl = (str) => {
+  return str && (str.startsWith('data:') || str.startsWith('blob:'));
 };
 const easingFactor = 0.5;
 const easingFactorFold = 0.3;
@@ -67,19 +72,21 @@ const pageMaterials = [
   new MeshStandardMaterial({ color: whiteColor }),
   new MeshStandardMaterial({ color: whiteColor }),
 ];
-pages.forEach((page) => {
-  useTexture.preload(`/textures/${page.front}.${getTextureExtension(page.front)}`);
-  useTexture.preload(`/textures/${page.back}.${getTextureExtension(page.back)}`);
-  useTexture.preload(`/textures/book-cover-roughness.jpg`);
-});
-const Page = ({ number, front, back, page, opened, bookClosed, ...props }) => {
-  const [picture, picture2, pictureRoughness] = useTexture([
-    `/textures/${front}.${getTextureExtension(front)}`,
-    `/textures/${back}.${getTextureExtension(back)}`,
-    ...(number === 0 || number === pages.length - 1
+// Texture preloading will be handled dynamically in the Page component
+const Page = ({ number, front, back, page, opened, bookClosed, totalPages, ...props }) => {
+  // Handle both data URLs and file paths
+  const frontUrl = isDataUrl(front) ? front : `/textures/${front}.${getTextureExtension(front)}`;
+  const backUrl = isDataUrl(back) ? back : `/textures/${back}.${getTextureExtension(back)}`;
+  
+  const texturesToLoad = [
+    frontUrl,
+    backUrl,
+    ...(number === 0 || number === totalPages - 1
       ? [`/textures/book-cover-roughness.jpg`]
       : []),
-  ]);
+  ];
+  
+  const [picture, picture2, pictureRoughness] = useTexture(texturesToLoad);
   picture.colorSpace = picture2.colorSpace = SRGBColorSpace;
   const group = useRef();
   const turnedAt = useRef(0);
@@ -189,7 +196,7 @@ const Page = ({ number, front, back, page, opened, bookClosed, ...props }) => {
       );
     }
   });
-  const [_, setPage] = useAtom(pageAtom);
+  const [_, setPage] = useAtom(currentPageAtom);
   const [highlighted, setHighlighted] = useState(false);
   useCursor(highlighted);
   return (
@@ -219,7 +226,8 @@ const Page = ({ number, front, back, page, opened, bookClosed, ...props }) => {
   );
 };
 export const Book = ({ ...props }) => {
-  const [page] = useAtom(pageAtom);
+  const [page] = useAtom(currentPageAtom);
+  const [bookData] = useAtom(bookDataAtom);
   const [delayedPage, setDelayedPage] = useState(page);
   useEffect(() => {
     let timeout;
@@ -250,13 +258,14 @@ export const Book = ({ ...props }) => {
   }, [page]);
   return (
     <group>
-      {[...pages].map((pageData, index) => (
+      {[...bookData].map((pageData, index) => (
         <Page
           key={index}
           page={delayedPage}
           number={index}
           opened={delayedPage > index}
-          bookClosed={delayedPage === 0 || delayedPage === pages.length}
+          bookClosed={delayedPage === 0 || delayedPage === bookData.length}
+          totalPages={bookData.length}
           {...pageData}
         />
       ))}

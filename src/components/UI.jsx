@@ -96,7 +96,7 @@ export const UI = () => {
       {/* WhatsApp Link */}
       <a
         className="fixed top-10 left-44 pointer-events-auto z-10 bg-green-500 hover:bg-green-600 rounded-full p-2 shadow-lg transition-all"
-        href="https://wa.me/972545498727"
+        href="https://wa.me/97236030603"
         title="WhatsApp"
       >
         <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">

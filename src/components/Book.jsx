@@ -130,7 +130,7 @@ const Page = ({ number, front, back, page, opened, bookClosed, totalPages, ...pr
       new MeshStandardMaterial({
         color: whiteColor,
         map: picture2,
-        ...(number === pages.length - 1 && !back.includes('שאל')
+        ...(number === totalPages - 1 && !back.includes('שאל')
           ? { roughnessMap: pictureRoughness }
           : { roughness: 0.1 }),
         emissive: emissiveColor,

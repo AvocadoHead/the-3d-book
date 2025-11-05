@@ -1,8 +1,25 @@
 import { useAtom } from "jotai";
-import { useEffect, useState } from "react";
-import { bookPagesAtom, currentPageAtom, editModeAtom } from "../store/atoms";
+import { useEffect, useState, useRef } from "react";
+import { bookPagesAtom, currentPageAtom, editModeAtom, languageAtom } from "../store/atoms";
 import { EditorCanvas } from "./editor/EditorCanvas";
 import { updatePageAtom } from "../store/atoms";
+
+const translations = {
+  en: {
+    editPage: 'Edit Page',
+    addPage: 'Add Page',
+    cover: 'Cover',
+    page: 'Page',
+    backCover: 'Back Cover',
+  },
+  he: {
+    editPage: 'ערוך עמוד',
+    addPage: 'הוסף עמוד',
+    cover: 'כריכה',
+    page: 'עמוד',
+    backCover: 'כריכה אחורית',
+  }
+};
 
 export const UI = () => {
   const [page, setPage] = useAtom(currentPageAtom);
@@ -10,6 +27,10 @@ export const UI = () => {
   const [editorOpen, setEditorOpen] = useAtom(editModeAtom);
   const [editingPage, setEditingPage] = useState(null);
   const [, updatePage] = useAtom(updatePageAtom);
+  const [language, setLanguage] = useAtom(languageAtom);
+  const videoRef = useRef(null);
+  
+  const t = translations[language];
 
   const handleEditCurrentPage = () => {
     if (page >= 0 && page < pages.length) {
@@ -44,11 +65,37 @@ export const UI = () => {
       // User will hear sound after first interaction
     });
   }, [page]);
+  
+  useEffect(() => {
+    // Auto-play video
+    if (videoRef.current) {
+      videoRef.current.play().catch(() => {
+        // Silently fail if autoplay is blocked
+      });
+    }
+  }, []);
 
   return (
     <>
+      {/* Circular Video - Top Left */}
+      <div className="fixed top-10 left-10 pointer-events-auto z-10">
+        <div className="relative w-32 h-32 rounded-full overflow-hidden shadow-2xl border-4 border-white/20">
+          <video
+            ref={videoRef}
+            className="w-full h-full object-cover"
+            loop
+            muted
+            playsInline
+            autoPlay
+          >
+            <source src="/videos/Optopia Eye.mp4" type="video/mp4" />
+          </video>
+        </div>
+      </div>
+
+      {/* WhatsApp Link */}
       <a
-        className="fixed top-10 left-10 pointer-events-auto z-10 bg-green-500 hover:bg-green-600 rounded-full p-2 shadow-lg transition-all"
+        className="fixed top-10 left-44 pointer-events-auto z-10 bg-green-500 hover:bg-green-600 rounded-full p-2 shadow-lg transition-all"
         href="https://wa.me/972545498727"
         title="WhatsApp"
       >
@@ -56,11 +103,21 @@ export const UI = () => {
           <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
         </svg>
       </a>
+
+      {/* Language Toggle */}
       <button
-        className="fixed top-10 right-10 pointer-events-auto z-10 bg-gradient-to-r from-purple-600 to-blue-600 text-white py-2 px-6 rounded-lg shadow-lg hover:shadow-xl transition-all"
+        className="fixed top-10 right-10 pointer-events-auto z-10 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white py-2 px-4 rounded-lg shadow-lg transition-all"
+        onClick={() => setLanguage(language === 'en' ? 'he' : 'en')}
+      >
+        {language === 'en' ? '🇮🇱 עברית' : '🇺🇸 English'}
+      </button>
+
+      {/* Edit Page Button */}
+      <button
+        className="fixed top-10 right-36 pointer-events-auto z-10 bg-gradient-to-r from-purple-600 to-blue-600 text-white py-2 px-6 rounded-lg shadow-lg hover:shadow-xl transition-all"
         onClick={handleEditCurrentPage}
       >
-        ✏️ ערוך עמוד
+        ✏️ {t.editPage}
       </button>
       {editorOpen && editingPage && (
         <EditorCanvas
@@ -74,69 +131,47 @@ export const UI = () => {
       )}
       
       <main className="pointer-events-none select-none z-10 fixed inset-0 flex justify-between flex-col">
-        <div className="w-full overflow-auto pointer-events-auto flex justify-center">
-          <div className="overflow-auto flex items-center gap-4 max-w-full p-10">
+        <div className="flex-1"></div>
+        
+        {/* Navigation - Bottom */}
+        <div className="w-full overflow-auto pointer-events-auto flex justify-center pb-4">
+          <div className="overflow-auto flex items-center gap-3 max-w-full px-6">
             {pages.map((pageData, index) => (
               <button
                 key={pageData.id}
-                className={`border-transparent hover:border-white transition-all duration-300 px-4 py-3 rounded-full text-lg uppercase shrink-0 border ${
+                className={`border-transparent hover:border-white transition-all duration-300 px-4 py-2 rounded-full text-base shrink-0 border ${
                   index === page
-                    ? "bg-white/90 text-black"
+                    ? "bg-white/90 text-black font-bold"
                     : "bg-black/30 text-white"
                 }`}
                 onClick={() => setPage(index)}
               >
-                {index === 0 ? "כריכה" : `עמוד ${index}`}
+                {index === 0 ? t.cover : `${t.page} ${index}`}
               </button>
             ))}
             <button
-              className={`border-transparent hover:border-white transition-all duration-300 px-4 py-3 rounded-full text-lg uppercase shrink-0 border ${
+              className={`border-transparent hover:border-white transition-all duration-300 px-4 py-2 rounded-full text-base shrink-0 border ${
                 page === pages.length
-                  ? "bg-white/90 text-black"
+                  ? "bg-white/90 text-black font-bold"
                   : "bg-black/30 text-white"
               }`}
               onClick={() => setPage(pages.length)}
             >
-              כריכה אחורית
+              {t.backCover}
             </button>
           </div>
         </div>
-        <div className="w-full overflow-hidden pointer-events-auto">
-          <div className="bulletin-container">
-            <div className="bulletin-text">
-מגזין שיש בו הכל, ספר אישי בהתאמה, אלבום תמונות אינסופי, ניוזלטר משולב קטעי וידאו, בספר האינטראקטיבי הזה תוכלו ליצוק את התוכן שלכם. לתמיכה בפרויקט צרו קשר ב-eyalizenman@gmail.com            </div>
+        {/* Bottom Ticker */}
+        <div className="w-full overflow-hidden pointer-events-auto bg-black/80 py-3">
+          <div className="whitespace-nowrap">
+            <div className="inline-block animate-scroll">
+              <span className="text-white text-lg px-8">
+                {language === 'en' 
+                  ? 'Interactive 3D Book Creator • Add text, images, and videos • Create presentations, photo albums, storyboards • Contact: eyalizenman@gmail.com'
+                  : 'מגזין שיש בו הכל, ספר אישי בהתאמה, אלבום תמונות אינסופי, ניוזלטר משולב קטעי וידאו, בספר האינטראקטיבי הזה תוכלו ליצוק את התוכן שלכם. לתמיכה בפרויקט צרו קשר ב-eyalizenman@gmail.com'}
+              </span>
+            </div>
           </div>
-          <style>
-            {`
-              @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@400;700&display=swap');
-              
-              .bulletin-container {
-                background-color: rgba(0, 0, 0, 0.8);
-                padding: 1rem 0;
-                overflow: hidden;
-                position: relative;
-                white-space: nowrap;
-              }
-              
-              .bulletin-text {
-                display: inline-block;
-                animation: scroll-right 60s linear infinite;
-                font-family: 'Heebo', sans-serif;
-                font-size: 1.5rem;
-                color: white;
-                padding: 0 100vw;
-              }
-              
-              @keyframes scroll-left {
-                from {
-                  transform: translateX(0);
-                }
-                to {
-                  transform: translateX(-50%);
-                }
-              }
-            `}
-          </style>
         </div>
       </main>
     </>

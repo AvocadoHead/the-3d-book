@@ -118,6 +118,9 @@ export const editModeAtom = atom(false);
 // Currently editing page (null or { pageId, side: 'front' | 'back' })
 export const editingPageAtom = atom(null);
 
+// Language toggle ('en' or 'he')
+export const languageAtom = atomWithStorage('language', 'en');
+
 // Derived atom: Get page for Book.jsx format
 export const bookDataAtom = atom((get) => {
   const pages = get(bookPagesAtom);

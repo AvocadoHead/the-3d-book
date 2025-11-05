@@ -4,6 +4,17 @@ import { atomWithStorage } from 'jotai/utils';
 // Generate unique ID for pages
 export const generatePageId = () => `page-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
+// Create blank white page texture
+const createBlankTexture = () => {
+  const canvas = document.createElement('canvas');
+  canvas.width = 1325;
+  canvas.height = 1771;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL('image/png');
+};
+
 // Initial pages from the existing setup
 const initialPages = [
   {
@@ -135,16 +146,17 @@ export const addPageAtom = atom(
   null,
   (get, set, position = 'end') => {
     const pages = get(bookPagesAtom);
+    const blankTexture = createBlankTexture();
     const newPage = {
       id: generatePageId(),
       pageNumber: pages.length,
       front: {
-        texture: null, // Will be set by editor
+        texture: blankTexture,
         fabricJSON: null,
         type: 'page'
       },
       back: {
-        texture: null,
+        texture: blankTexture,
         fabricJSON: null,
         type: 'page'
       }

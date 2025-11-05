@@ -1,10 +1,12 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
-import * as fabric from 'fabric';
+import { fabric } from 'fabric';
 import { createVideoMetadata, loadVideoThumbnail } from '@/utils/videoHelpers';
 
 const PAGE_DIMENSIONS = {
-  width: 1325,
-  height: 1771,
+  width: 800,  // Scaled down for display
+  height: 1070, // Maintains aspect ratio
+  actualWidth: 1325,
+  actualHeight: 1771,
 };
 
 export const EditorCanvas = ({ initialData, onSave, onClose }) => {
@@ -31,9 +33,13 @@ export const EditorCanvas = ({ initialData, onSave, onClose }) => {
 
     // Load initial data if provided
     if (initialData?.fabricJSON) {
-      canvas.loadFromJSON(initialData.fabricJSON, () => {
-        canvas.renderAll();
-      });
+      try {
+        canvas.loadFromJSON(initialData.fabricJSON, () => {
+          canvas.renderAll();
+        });
+      } catch (error) {
+        console.log('No previous data to load');
+      }
     }
 
     // Selection events
@@ -94,20 +100,18 @@ export const EditorCanvas = ({ initialData, onSave, onClose }) => {
   const addText = useCallback(() => {
     if (!fabricCanvasRef.current) return;
 
-    const text = new fabric.IText('הקלד טקסט כאן', {
+    const text = new fabric.IText('Type text here', {
       left: 100,
       top: 100,
-      fontFamily: 'Arial',
-      fontSize: 60,
+      fontFamily: 'Heebo',
+      fontSize: 48,
       fill: '#000000',
-      textAlign: 'right',
-      direction: 'rtl',
     });
 
     fabricCanvasRef.current.add(text);
     fabricCanvasRef.current.setActiveObject(text);
     fabricCanvasRef.current.renderAll();
-    setStatus('טקסט נוסף');
+    setStatus('✓ Text added');
     setTimeout(() => setStatus(''), 2000);
   }, []);
 
@@ -128,8 +132,8 @@ export const EditorCanvas = ({ initialData, onSave, onClose }) => {
       reader.onload = (event) => {
         fabric.Image.fromURL(event.target.result, (img) => {
           // Scale to fit if too large
-          const maxWidth = PAGE_DIMENSIONS.width * 0.8;
-          const maxHeight = PAGE_DIMENSIONS.height * 0.8;
+          const maxWidth = PAGE_DIMENSIONS.width * 0.7;
+          const maxHeight = PAGE_DIMENSIONS.height * 0.7;
           
           if (img.width > maxWidth) {
             img.scaleToWidth(maxWidth);
@@ -148,7 +152,7 @@ export const EditorCanvas = ({ initialData, onSave, onClose }) => {
           fabricCanvasRef.current.renderAll();
           
           setIsLoading(false);
-          setStatus('תמונה נוספה!');
+          setStatus('✓ Image added!');
           setTimeout(() => setStatus(''), 2000);
         });
       };
@@ -322,16 +326,19 @@ export const EditorCanvas = ({ initialData, onSave, onClose }) => {
     if (!fabricCanvasRef.current) return;
 
     setIsLoading(true);
-    setStatus('שומר...');
+    setStatus('Saving...');
 
     // Get Fabric.js JSON
     const fabricJSON = fabricCanvasRef.current.toJSON(['videoMetadata', 'isVideo']);
 
-    // Export as image
+    // Scale up for actual page dimensions
+    const scaleMultiplier = PAGE_DIMENSIONS.actualWidth / PAGE_DIMENSIONS.width;
+
+    // Export as high-res image
     const dataURL = fabricCanvasRef.current.toDataURL({
       format: 'png',
       quality: 1,
-      multiplier: 1,
+      multiplier: scaleMultiplier,
     });
 
     onSave({
@@ -340,7 +347,7 @@ export const EditorCanvas = ({ initialData, onSave, onClose }) => {
     });
 
     setIsLoading(false);
-    setStatus('✅ נשמר!');
+    setStatus('✓ Saved!');
     setTimeout(() => {
       setStatus('');
       onClose();
@@ -372,14 +379,14 @@ export const EditorCanvas = ({ initialData, onSave, onClose }) => {
   }, [undo, redo, deleteSelected]);
 
   return (
-    <div className="fixed inset-0 z-50 bg-black bg-opacity-75 flex items-center justify-center">
-      <div className="bg-white rounded-lg shadow-2xl w-full h-full max-w-[95vw] max-h-[95vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backdropFilter: 'blur(10px)', backgroundColor: 'rgba(0, 0, 0, 0.3)' }}>
+      <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border-4 border-white/30" style={{ width: PAGE_DIMENSIONS.width + 80, maxHeight: '95vh', overflow: 'auto' }}>
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-t-lg">
-          <h2 className="text-2xl font-bold">עורך עמודים</h2>
+        <div className="px-6 py-3 flex justify-between items-center bg-gradient-to-r from-purple-600/90 to-blue-600/90 rounded-t-2xl">
+          <h2 className="text-xl font-bold text-white">Page Editor</h2>
           <button
             onClick={onClose}
-            className="text-white hover:text-gray-200 text-2xl w-8 h-8 flex items-center justify-center"
+            className="text-white hover:text-gray-200 text-xl w-8 h-8 flex items-center justify-center"
           >
             ✕
           </button>
@@ -387,140 +394,110 @@ export const EditorCanvas = ({ initialData, onSave, onClose }) => {
 
         {/* Status Bar */}
         {status && (
-          <div className="px-6 py-2 bg-blue-50 border-b border-blue-200 text-center text-sm font-medium text-blue-800">
+          <div className="px-4 py-2 bg-blue-50/90 text-center text-sm font-medium text-blue-800">
             {status}
           </div>
         )}
 
         {/* Toolbar */}
-        <div className="px-4 py-3 border-b border-gray-200 flex flex-wrap gap-2 bg-gray-50">
+        <div className="px-3 py-2 flex flex-wrap gap-2 bg-white/50">
           <button
             onClick={addText}
             disabled={isLoading}
-            className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg hover:bg-gray-100 transition-colors border border-gray-300 disabled:opacity-50"
+            className="flex items-center gap-1 px-3 py-1.5 bg-white rounded-lg hover:bg-gray-50 transition-colors border border-gray-300 disabled:opacity-50 text-sm"
           >
-            <span className="text-xl">📝</span>
-            <span className="hidden sm:inline">טקסט</span>
+            <span>📝</span>
+            <span>Text</span>
           </button>
 
           <button
             onClick={addImageFromFile}
             disabled={isLoading}
-            className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg hover:bg-gray-100 transition-colors border border-gray-300 disabled:opacity-50"
+            className="flex items-center gap-1 px-3 py-1.5 bg-white rounded-lg hover:bg-gray-50 transition-colors border border-gray-300 disabled:opacity-50 text-sm"
           >
-            <span className="text-xl">🖼️</span>
-            <span className="hidden sm:inline">העלה תמונה</span>
+            <span>🖼️</span>
+            <span>Upload</span>
           </button>
 
           <button
             onClick={addImageFromUrl}
             disabled={isLoading}
-            className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg hover:bg-gray-100 transition-colors border border-gray-300 disabled:opacity-50"
+            className="flex items-center gap-1 px-3 py-1.5 bg-white rounded-lg hover:bg-gray-50 transition-colors border border-gray-300 disabled:opacity-50 text-sm"
           >
-            <span className="text-xl">🔗</span>
-            <span className="hidden sm:inline">תמונה מקישור</span>
+            <span>🔗</span>
+            <span>URL</span>
           </button>
 
           <button
             onClick={addVideo}
             disabled={isLoading}
-            className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg hover:bg-gray-100 transition-colors border border-gray-300 disabled:opacity-50"
+            className="flex items-center gap-1 px-3 py-1.5 bg-white rounded-lg hover:bg-gray-50 transition-colors border border-gray-300 disabled:opacity-50 text-sm"
           >
-            <span className="text-xl">🎬</span>
-            <span className="hidden sm:inline">וידאו</span>
+            <span>🎬</span>
+            <span>Video</span>
           </button>
 
-          <div className="w-px h-8 bg-gray-300" />
+          <div className="w-px h-6 bg-gray-300" />
 
           <button
             onClick={undo}
             disabled={isLoading || historyStep <= 0}
-            className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg hover:bg-gray-100 transition-colors border border-gray-300 disabled:opacity-50"
+            className="px-3 py-1.5 bg-white rounded-lg hover:bg-gray-50 transition-colors border border-gray-300 disabled:opacity-50 text-sm"
             title="Undo (Ctrl+Z)"
           >
-            <span className="text-xl">↶</span>
+            ↶
           </button>
 
           <button
             onClick={redo}
             disabled={isLoading || historyStep >= history.length - 1}
-            className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg hover:bg-gray-100 transition-colors border border-gray-300 disabled:opacity-50"
+            className="px-3 py-1.5 bg-white rounded-lg hover:bg-gray-50 transition-colors border border-gray-300 disabled:opacity-50 text-sm"
             title="Redo (Ctrl+Y)"
           >
-            <span className="text-xl">↷</span>
+            ↷
           </button>
-
-          <div className="w-px h-8 bg-gray-300" />
 
           {selectedObject && (
             <>
-              <button
-                onClick={bringToFront}
-                className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg hover:bg-gray-100 transition-colors border border-gray-300"
-                title="Bring to Front"
-              >
-                <span className="text-xl">⬆️</span>
-              </button>
-
-              <button
-                onClick={sendToBack}
-                className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg hover:bg-gray-100 transition-colors border border-gray-300"
-                title="Send to Back"
-              >
-                <span className="text-xl">⬇️</span>
-              </button>
-
+              <div className="w-px h-6 bg-gray-300" />
               <button
                 onClick={deleteSelected}
-                className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors border border-red-300"
+                className="flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors border border-red-300 text-sm"
                 title="Delete (Del)"
               >
-                <span className="text-xl">🗑️</span>
-                <span className="hidden sm:inline">מחק</span>
+                <span>🗑️</span>
+                <span>Delete</span>
               </button>
             </>
           )}
-
-          <div className="flex-1" />
-
-          <button
-            onClick={clearCanvas}
-            disabled={isLoading}
-            className="flex items-center gap-2 px-4 py-2 bg-yellow-50 text-yellow-700 rounded-lg hover:bg-yellow-100 transition-colors border border-yellow-300 disabled:opacity-50"
-          >
-            <span className="text-xl">🗑️</span>
-            <span className="hidden sm:inline">נקה הכל</span>
-          </button>
         </div>
 
         {/* Canvas Area */}
-        <div className="flex-1 overflow-auto p-4 bg-gray-100">
-          <div className="flex justify-center items-start min-h-full">
-            <div className="bg-white shadow-2xl" style={{ display: 'inline-block' }}>
-              <canvas ref={canvasRef} />
-            </div>
+        <div className="p-4 flex justify-center">
+          <div className="bg-white shadow-2xl border-2 border-gray-200 rounded-lg overflow-hidden">
+            <canvas ref={canvasRef} />
           </div>
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-200 bg-white flex justify-between items-center">
-          <div className="text-sm text-gray-600">
-            <p>💡 טיפ: גרור אובייקטים להזזה, משיכת פינות לשינוי גודל</p>
+        <div className="px-4 py-3 bg-white/50 flex justify-between items-center rounded-b-2xl">
+          <div className="text-xs text-gray-600">
+            💡 Drag to move, corners to resize
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-2">
             <button
               onClick={onClose}
               disabled={isLoading}
-              className="px-6 py-3 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-50"
+              className="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-50 text-sm"
             >
-              ביטול
+              Cancel
             </button>
             <button
               onClick={handleSave}
               disabled={isLoading}
-              className="px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-colors font-medium disabled:opacity-50"
+              className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-colors font-medium disabled:opacity-50 text-sm"
             >
-              {isLoading ? 'שומר...' : 'שמור וסגור'}
+              {isLoading ? 'Saving...' : 'Save & Close'}
             </button>
           </div>
         </div>

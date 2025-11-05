@@ -12,6 +12,7 @@
     "@react-three/drei": "^9.108.1",
     "@react-three/fiber": "^8.16.8",
     "@react-three/postprocessing": "^2.16.2",
+    "@supabase/supabase-js": "^2.39.0",
     "@types/three": "0.152.1",
     "autoprefixer": "^10.4.19",
     "fabric": "^6.0.2",

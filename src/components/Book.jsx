@@ -75,8 +75,17 @@ const pageMaterials = [
 // Texture preloading will be handled dynamically in the Page component
 const Page = ({ number, front, back, page, opened, bookClosed, totalPages, ...props }) => {
   // Handle both data URLs and file paths
-  const frontUrl = isDataUrl(front) ? front : `/textures/${front}.${getTextureExtension(front)}`;
-  const backUrl = isDataUrl(back) ? back : `/textures/${back}.${getTextureExtension(back)}`;
+  const getFinalUrl = (path) => {
+    if (!path) return null;
+    if (isDataUrl(path)) return path;
+    // Check if path already starts with /textures/
+    if (path.startsWith('/textures/')) return path;
+    // Add /textures/ prefix and extension
+    return `/textures/${path}.${getTextureExtension(path)}`;
+  };
+  
+  const frontUrl = getFinalUrl(front);
+  const backUrl = getFinalUrl(back);
   
   const texturesToLoad = [
     frontUrl,

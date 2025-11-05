@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
-import { fabric } from 'fabric';
+import * as fabric from 'fabric';
 import { createVideoMetadata, loadVideoThumbnail } from '@/utils/videoHelpers';
 
 const PAGE_DIMENSIONS = {

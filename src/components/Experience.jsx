@@ -1,6 +1,14 @@
 import { Environment, Float, OrbitControls } from "@react-three/drei";
 import { Book } from "./Book";
+import { useThree } from "@react-three/fiber";
+import { useEffect } from "react";
 export const Experience = () => {
+    const { camera } = useThree();
+
+    useEffect(() => {
+          camera.up.set(0, 0, 1);
+          camera.updateProjectionMatrix();
+        }, [camera]);
   return (
     <>
       <Float

@@ -78,3 +78,59 @@ export function getPublicUrl(bucket, path) {
   
   return data.publicUrl
 }
+
+// Create a new book
+export async function createBook(title, userId = null) {
+  try {
+    const { data, error } = await supabase
+      .from('books')
+      .insert([{ title, user_id: userId }])
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  } catch (error) {
+    console.error('Error creating book:', error)
+    throw error
+  }
+}
+
+// Update a page's content (Fabric.js JSON)
+export async function updatePage(pageId, fabricJson) {
+  try {
+    const { data, error } = await supabase
+      .from('pages')
+      .update({ fabric_json: fabricJson, updated_at: new Date().toISOString() })
+      .eq('id', pageId)
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  } catch (error) {
+    console.error('Error updating page:', error)
+    throw error
+  }
+}
+
+// Create a new page for a book
+export async function createPage(bookId, pageNumber, fabricJson = null) {
+  try {
+    const { data, error } = await supabase
+      .from('pages')
+      .insert([{
+        book_id: bookId,
+        page_number: pageNumber,
+        fabric_json: fabricJson
+      }])
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  } catch (error) {
+    console.error('Error creating page:', error)
+    throw error
+  }
+}

@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
 import * as fabric from 'fabric';
 import { createVideoMetadata, loadVideoThumbnail } from '@/utils/videoHelpers';
+import { FrameOverlay } from './FrameOverlay';
 
 const PAGE_DIMENSIONS = {
   width: 800,  // Scaled down for display
@@ -25,7 +26,7 @@ export const EditorCanvas = ({ initialData, onSave, onClose }) => {
     const canvas = new fabric.Canvas(canvasRef.current, {
       width: PAGE_DIMENSIONS.width,
       height: PAGE_DIMENSIONS.height,
-      backgroundColor: '#ffffff',
+      backgroundColor: 'rgba(255, 255, 255, 0.85)',
       preserveObjectStacking: true,
     });
 
@@ -379,7 +380,7 @@ export const EditorCanvas = ({ initialData, onSave, onClose }) => {
   }, [undo, redo, deleteSelected]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backdropFilter: 'blur(10px)', backgroundColor: 'rgba(0, 0, 0, 0.3)' }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backdropFilter: 'blur(8px) brightness(0.7)', backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
       <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border-4 border-white/30" style={{ width: PAGE_DIMENSIONS.width + 80, maxHeight: '95vh', overflow: 'auto' }}>
         {/* Header */}
         <div className="px-6 py-3 flex justify-between items-center bg-gradient-to-r from-purple-600/90 to-blue-600/90 rounded-t-2xl">
@@ -476,6 +477,7 @@ export const EditorCanvas = ({ initialData, onSave, onClose }) => {
         <div className="p-4 flex justify-center">
           <div className="bg-white shadow-2xl border-2 border-gray-200 rounded-lg overflow-hidden">
             <canvas ref={canvasRef} />
+                        <FrameOverlay />
           </div>
         </div>
 
